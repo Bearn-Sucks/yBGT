@@ -2,6 +2,10 @@
 
 forge install
 
+cd "lib/berachain-contracts"
+npm install
+cd ../..
+
 # Replaces mentions of @openzepplin with submodule specific names
 # This is needed because forge can't resolve these dependencies properly
 # https://github.com/foundry-rs/foundry/issues/5447
