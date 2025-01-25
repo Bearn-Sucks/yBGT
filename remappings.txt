@@ -1,0 +1,6 @@
+@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+@openzeppelin-bera/contracts/=lib/berachain-contracts/node_modules/@openzeppelin/contracts/
+@openzeppelin-bera/contracts-upgradeable/=lib/berachain-contracts/node_modules/@openzeppelin/contracts-upgradeable/
+forge-std/=lib/forge-std/src/
+@yearn/tokenized-strategy-periphery/=lib/yearn-tokenized-strategy-periphery/
+@berachain/contracts/=lib/berachain-contracts/src/
