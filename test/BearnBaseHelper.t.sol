@@ -20,6 +20,7 @@ import {IBeraVault} from "src/interfaces/IBeraVault.sol";
 
 abstract contract BearnBaseHelper is BeraHelper {
     address internal bearnManager = makeAddr("bearnManager");
+    address internal protocolFeeRecipient = makeAddr("protocolFeeRecipient");
     address internal user = makeAddr("user");
 
     BearnVaultManager internal bearnVaultManager;
@@ -52,9 +53,13 @@ abstract contract BearnBaseHelper is BeraHelper {
         );
 
         // Deploy yearn contracts
+        address protocolFees = deployCode(
+            "MockProtocolFees",
+            abi.encode(protocolFeeRecipient)
+        );
         deployCodeTo(
             "TokenizedStrategy",
-            abi.encode(address(0)),
+            abi.encode(protocolFees),
             0xD377919FA87120584B21279a491F82D5265A139c
         );
         vm.label(
@@ -113,9 +118,6 @@ abstract contract BearnBaseHelper is BeraHelper {
         address _bearnVault,
         uint256 amount
     ) internal {
-        vm.prank(user);
-        IBearnVault(_bearnVault).deposit(amount, user);
-
         // add BGT to bera reward vault
         vm.prank(address(distributor));
         bgt.approve(address(beraVault), type(uint256).max);

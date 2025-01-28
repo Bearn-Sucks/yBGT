@@ -10,6 +10,8 @@ import {IBearnBGT} from "src/interfaces/IBearnBGT.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract BearnVault is TokenizedStaker {
+    // @TODO: fork TokenizedStrategy to replace hardcoded address for getting protocol fees
+
     IBeraVault public immutable beraVault;
     IBearnVoter public immutable bearnVoter;
     IBearnBGT public immutable yBGT;

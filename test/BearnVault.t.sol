@@ -34,6 +34,9 @@ contract BearnVaultTest is BearnBaseHelper {
     }
 
     function test_report() public virtual {
+        vm.prank(user);
+        bearnVault.deposit(1 ether, user);
+
         uint256 balanceBefore = yBGT.balanceOf(address(bearnVault));
         console.log("bearnVault yBGT balance before", balanceBefore);
 
@@ -45,6 +48,9 @@ contract BearnVaultTest is BearnBaseHelper {
     }
 
     function test_getReward() public virtual {
+        vm.prank(user);
+        bearnVault.deposit(1 ether, user);
+
         // Push rewards to Bearn Vault and wait for a week
         _pushRewardsAndReport(address(bearnVault), 1 ether);
         vm.warp(block.timestamp + 86400 * 7);
