@@ -3,6 +3,8 @@ src = "src"
 out = "out"
 libs = ["lib"]
 
-auto_detect_remappings = true
+# needed for Bera tests, they read a .json for validator data
+fs_permissions = [{ access = "read", path = "./test" }]
+
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
