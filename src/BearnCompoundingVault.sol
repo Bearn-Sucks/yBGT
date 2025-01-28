@@ -8,6 +8,8 @@ import {BearnVault} from "src/BearnVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract BearnCompoundingVault is BearnVault, AuctionSwapper {
+    // @TODO: Fork AuctionSwapper and AuctionFactory to resolve CoW and Yearn addresses that are hardcoded
+
     /* ========== ERRORS ========== */
 
     error AuctionNotDeployed();
@@ -15,21 +17,16 @@ contract BearnCompoundingVault is BearnVault, AuctionSwapper {
     /* ========== EVENTS ========== */
 
     /* ========== MODIFIERS ========== */
-    modifier hasAuction() {
-        _hasAuction();
-        _;
-    }
-
-    function _hasAuction() internal view {
-        require(auction != address(0), AuctionNotDeployed());
-    }
 
     constructor(
         string memory _name,
         address _asset,
         address _beraVault,
         address _yBGT
-    ) BearnVault(_name, _asset, _beraVault, _yBGT) {}
+    ) BearnVault(_name, _asset, _beraVault, _yBGT) {
+        // Auction length should be 6 days, leaves 1 days for management to change settings if needed
+        _enableAuction(address(yBGT), address(asset), 518400, 1e6);
+    }
 
     /// @notice Override initialization since compounding vaults don't have yBGT as a reward
     function _initialize() internal override {}
@@ -42,8 +39,6 @@ contract BearnCompoundingVault is BearnVault, AuctionSwapper {
         // This claims the BGT to the Bearn Voter in return for yBGT
         yBGT.wrap(address(asset));
 
-        // Auction length should be 6 days, leaves 1 days for management to change settings if needed
-        _enableAuction(address(yBGT), address(asset), 518400, 1e6);
         _kickAuction(address(yBGT));
 
         // stake any excess asset (from auctions)
@@ -57,23 +52,19 @@ contract BearnCompoundingVault is BearnVault, AuctionSwapper {
     }
 
     /* ========== MANAGEMENT ACTIONS ========== */
-    function enableAuction() external onlyManagement hasAuction {
+    function enableAuction() external onlyManagement {
         Auction(auction).enable(address(yBGT));
     }
 
-    function disableAuction() external onlyManagement hasAuction {
+    function disableAuction() external onlyManagement {
         _disableAuction(address(yBGT));
     }
 
-    function setStartingPrice(
-        uint256 _startingPrice
-    ) external onlyManagement hasAuction {
+    function setStartingPrice(uint256 _startingPrice) external onlyManagement {
         Auction(auction).setStartingPrice(_startingPrice);
     }
 
-    function sweepFromAuction(
-        address _token
-    ) external onlyManagement hasAuction {
+    function sweepFromAuction(address _token) external onlyManagement {
         Auction(auction).sweep(_token);
     }
 }

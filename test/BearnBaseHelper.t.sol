@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity 0.8.27;
 
-// import "forge-std/Test.sol";
+import "forge-std/Test.sol";
 
 // import {RewardVaultTest as BeraRewardVaultTest} from "@berachain/test/pol/RewardVault.t.sol";
 import {POLTest as BeraHelper} from "@berachain/test/pol/POL.t.sol";
+
+import {IBaseAuctioneer} from "@yearn/tokenized-strategy-periphery/Bases/Auctioneer/IBaseAuctioneer.sol";
 
 import {BearnBGT} from "src/BearnBGT.sol";
 import {BearnVoter} from "src/BearnVoter.sol";
 import {BearnVaultFactory} from "src/BearnVaultFactory.sol";
 import {BearnVault} from "src/BearnVault.sol";
+import {BearnVaultManager} from "src/BearnVaultManager.sol";
 import {BearnCompoundingVault} from "src/BearnCompoundingVault.sol";
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
 import {IBearnCompoundingVault} from "src/interfaces/IBearnCompoundingVault.sol";
@@ -19,16 +22,19 @@ abstract contract BearnBaseHelper is BeraHelper {
     address internal bearnManager = makeAddr("bearnManager");
     address internal user = makeAddr("user");
 
+    BearnVaultManager internal bearnVaultManager;
     IBeraVault internal beraVault;
     BearnBGT internal yBGT;
     BearnVoter internal bearnVoter;
     BearnVaultFactory internal bearnVaultFactory;
     IBearnVault internal bearnVault;
     IBearnCompoundingVault internal bearnCompoundingVault;
+    IBaseAuctioneer internal bearnCompoundingVaultAuction;
 
     /// @dev A function invoked before each test case is run.
     function setUp() public virtual override {
         super.setUp();
+
         // act as bera governance to make a new bera vault
         vm.prank(governance);
         beraVault = IBeraVault(factory.createRewardVault(address(wbera)));
@@ -38,6 +44,12 @@ abstract contract BearnBaseHelper is BeraHelper {
 
         vm.startPrank(bearnManager);
         vm.deal(bearnManager, 100 ether);
+
+        // Deploy CoW contracts
+        deployCodeTo(
+            "MockCoWSettlement",
+            0x9008D19f58AAbD9eD0D60971565AA8510560ab41
+        );
 
         // Deploy yearn contracts
         deployCodeTo(
@@ -50,16 +62,25 @@ abstract contract BearnBaseHelper is BeraHelper {
             "TokenizedStrategy"
         );
 
+        deployCodeTo(
+            "AuctionFactory",
+            0xa076c247AfA44f8F006CA7f21A4EF59f7e4dc605
+        );
+        vm.label(0xa076c247AfA44f8F006CA7f21A4EF59f7e4dc605, "AuctionFactory");
+
         // Deploy contracts
         yBGT = new BearnBGT(bearnManager);
         bearnVaultFactory = new BearnVaultFactory(
+            bearnManager,
             address(yBGT),
             address(factory)
         );
         bearnVoter = new BearnVoter(address(bearnVaultFactory));
+        bearnVaultManager = new BearnVaultManager(address(bearnVaultFactory));
 
         // initialize contracts
         yBGT.initialize(address(factory), address(bearnVoter));
+        bearnVaultFactory.setVaultManager(address(bearnVaultManager));
 
         (
             address _bearnCompoundingVault,
@@ -71,6 +92,39 @@ abstract contract BearnBaseHelper is BeraHelper {
             IBearnVault(_bearnVault)
         );
 
+        bearnCompoundingVaultAuction = IBaseAuctioneer(
+            bearnCompoundingVault.auction()
+        );
+
         vm.stopPrank();
+
+        // set up user balances
+        vm.startPrank(user);
+        vm.deal(user, 100 ether);
+        wbera.deposit{value: 10 ether}();
+        // set up approvals
+        wbera.approve(address(bearnVault), type(uint256).max);
+        wbera.approve(address(bearnCompoundingVault), type(uint256).max);
+
+        vm.stopPrank();
+    }
+
+    function _pushRewardsAndReport(
+        address _bearnVault,
+        uint256 amount
+    ) internal {
+        vm.prank(user);
+        IBearnVault(_bearnVault).deposit(amount, user);
+
+        // add BGT to bera reward vault
+        vm.prank(address(distributor));
+        bgt.approve(address(beraVault), type(uint256).max);
+        vm.prank(address(distributor));
+        beraVault.notifyRewardAmount(valData.pubkey, amount);
+
+        vm.warp(block.timestamp + 3);
+
+        vm.prank(bearnManager);
+        bearnVaultFactory.report(_bearnVault);
     }
 }

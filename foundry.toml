@@ -6,5 +6,8 @@ libs = ["lib"]
 # needed for Bera tests, they read a .json for validator data
 fs_permissions = [{ access = "read", path = "./test" }]
 
+# 2025-01-02 (Thursday)
+block_timestamp = 1735776000
+
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
