@@ -1,4 +1,5 @@
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
 @openzeppelin-bera/contracts/=lib/berachain-contracts/node_modules/@openzeppelin/contracts/
 @openzeppelin-bera/contracts-upgradeable/=lib/berachain-contracts/node_modules/@openzeppelin/contracts-upgradeable/
 @openzeppelin-yearn/contracts/=lib/yearn-tokenized-strategy-periphery/lib/openzeppelin-contracts/contracts/
