@@ -5,6 +5,9 @@ import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgrad
 
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
+import {IBGT} from "@berachain/contracts/pol/BGT.sol";
+import {WBERA} from "@berachain/contracts/WBERA.sol";
+
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
 import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
 
@@ -19,12 +22,22 @@ contract BearnVoter is AccessControlEnumerableUpgradeable {
     /// @notice Redeem module
     bytes32 public immutable REDEEMER_ROLE = keccak256("REDEEMER_ROLE");
 
+    IBGT public immutable bgt;
+    WBERA public immutable wbera;
     IGovernor public immutable beraGovernance;
+
     IBearnVaultFactory public immutable bearnVaultFactory;
 
     /* ========== CONSTRUCTOR AND INITIALIZER ========== */
 
-    constructor(address _bearnVaultFactory, address _beraGovernance) {
+    constructor(
+        address _bgt,
+        address _wbera,
+        address _beraGovernance,
+        address _bearnVaultFactory
+    ) {
+        bgt = IBGT(_bgt);
+        wbera = WBERA(payable(_wbera));
         beraGovernance = IGovernor(_beraGovernance);
         bearnVaultFactory = IBearnVaultFactory(_bearnVaultFactory);
     }
@@ -62,11 +75,61 @@ contract BearnVoter is AccessControlEnumerableUpgradeable {
             );
     }
 
+    /* ========== BOOSTING ========== */
+    function queueBoost(
+        bytes calldata pubkey,
+        uint128 amount
+    ) external onlyRole(MANAGER_ROLE) {
+        bgt.queueBoost(pubkey, amount);
+    }
+
+    function cancelBoost(
+        bytes calldata pubkey,
+        uint128 amount
+    ) external onlyRole(MANAGER_ROLE) {
+        bgt.cancelBoost(pubkey, amount);
+    }
+
+    /// @notice Activates already queued boost
+    /// @dev Left open to the public since anyone can activate boost that is queued and ready
+    /// @param pubkey Public key of the boostee
+    function activateBoost(bytes calldata pubkey) external returns (bool) {
+        return bgt.activateBoost(address(this), pubkey);
+    }
+
+    function queueDropBoost(
+        bytes calldata pubkey,
+        uint128 amount
+    ) external onlyRole(MANAGER_ROLE) {
+        bgt.queueDropBoost(pubkey, amount);
+    }
+
+    function cancelDropBoost(
+        bytes calldata pubkey,
+        uint128 amount
+    ) external onlyRole(MANAGER_ROLE) {
+        bgt.cancelDropBoost(pubkey, amount);
+    }
+
+    /// @notice Activates already queued boost
+    /// @dev Left open to the public since anyone can activate boost that is queued and ready
+    /// @param pubkey Public key of the boostee
+    function dropBoost(bytes calldata pubkey) external returns (bool) {
+        return bgt.dropBoost(address(this), pubkey);
+    }
+
     /* ========== REDEEMING ========== */
     function redeem(
         address to,
         uint256 amount
     ) external onlyRole(REDEEMER_ROLE) {
         // wrap BERA to avoid any potential trouble with sending native BERA
+        // BERA is warpped to wBERA in the receive() function
+        bgt.redeem(address(this), amount);
+        wbera.transfer(to, amount);
+    }
+
+    receive() external payable {
+        wbera.deposit{value: msg.value}();
     }
 }

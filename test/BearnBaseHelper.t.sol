@@ -89,7 +89,12 @@ abstract contract BearnBaseHelper is BeraHelper {
 
         // Deploy Bearn Voter Implementation and Proxy
         address bearnVoterImp = address(
-            new BearnVoter(address(bearnVaultFactory), governance)
+            new BearnVoter(
+                address(bgt),
+                address(wbera),
+                governance,
+                address(bearnVaultFactory)
+            )
         );
 
         proxyAdmin = new ProxyAdmin();
@@ -103,7 +108,7 @@ abstract contract BearnBaseHelper is BeraHelper {
                 )
             );
 
-        bearnVoter = BearnVoter(address(bearnVoterProxy));
+        bearnVoter = BearnVoter(payable(bearnVoterProxy));
 
         // Deploy Fee Module
         feeModule = new BearnBGTFeeModule(0, 0, false);
