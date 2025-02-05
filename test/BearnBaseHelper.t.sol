@@ -3,6 +3,9 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+
 // import {RewardVaultTest as BeraRewardVaultTest} from "@berachain/test/pol/RewardVault.t.sol";
 import {POLTest as BeraHelper} from "@berachain/test/pol/POL.t.sol";
 
@@ -18,14 +21,18 @@ import {IBearnVault} from "src/interfaces/IBearnVault.sol";
 import {IBearnCompoundingVault} from "src/interfaces/IBearnCompoundingVault.sol";
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
 
+import {BearnBGTFeeModule} from "src/BearnBGTFeeModule.sol";
+
 abstract contract BearnBaseHelper is BeraHelper {
     address internal bearnManager = makeAddr("bearnManager");
     address internal protocolFeeRecipient = makeAddr("protocolFeeRecipient");
     address internal user = makeAddr("user");
 
+    ProxyAdmin internal proxyAdmin;
     BearnVaultManager internal bearnVaultManager;
     IBeraVault internal beraVault;
     BearnBGT internal yBGT;
+    BearnBGTFeeModule internal feeModule;
     BearnVoter internal bearnVoter;
     BearnVaultFactory internal bearnVaultFactory;
     IBearnVault internal bearnVault;
@@ -73,20 +80,50 @@ abstract contract BearnBaseHelper is BeraHelper {
         );
         vm.label(0xa076c247AfA44f8F006CA7f21A4EF59f7e4dc605, "AuctionFactory");
 
-        // Deploy contracts
-        yBGT = new BearnBGT(bearnManager);
+        // Deploy Bearn contracts
+        // Deploy Bearn Vault Factory
         bearnVaultFactory = new BearnVaultFactory(
             bearnManager,
-            address(yBGT),
             address(factory)
         );
-        bearnVoter = new BearnVoter(address(bearnVaultFactory));
+
+        // Deploy Bearn Voter Implementation and Proxy
+        address bearnVoterImp = address(
+            new BearnVoter(address(bearnVaultFactory), governance)
+        );
+
+        proxyAdmin = new ProxyAdmin();
+
+        TransparentUpgradeableProxy bearnVoterProxy = new TransparentUpgradeableProxy(
+                bearnVoterImp,
+                address(proxyAdmin),
+                abi.encodeWithSelector(
+                    BearnVoter.initialize.selector,
+                    address(yBGT)
+                )
+            );
+
+        bearnVoter = BearnVoter(address(bearnVoterProxy));
+
+        // Deploy Fee Module
+        feeModule = new BearnBGTFeeModule(0, 0, false);
+
+        // Deploy yBGT
+        yBGT = new BearnBGT(
+            bearnManager,
+            address(factory),
+            address(bearnVoter),
+            address(feeModule)
+        );
+
+        // Deploy Bearn Vault Manager
         bearnVaultManager = new BearnVaultManager(address(bearnVaultFactory));
 
-        // initialize contracts
-        yBGT.initialize(address(factory), address(bearnVoter));
+        // Initialize and pass ownership
+        bearnVaultFactory.initialize(address(yBGT));
         bearnVaultFactory.setVaultManager(address(bearnVaultManager));
 
+        // Create vaults to test with
         (
             address _bearnCompoundingVault,
             address _bearnVault

@@ -13,6 +13,8 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract BearnVaultFactory {
     /* ========== ERRORS ========== */
+
+    error NotInitialized();
     error NoBeraVault();
 
     /* ========== EVENTS ========== */
@@ -25,20 +27,23 @@ contract BearnVaultFactory {
     IBeraVaultFactory public immutable beraVaultFactory;
 
     BearnVaultManager public bearnVaultManager;
-    ERC20 public immutable yBGT;
+    ERC20 public yBGT;
 
     mapping(address stakingToken => address) compoundingVaults;
     mapping(address stakingToken => address) yBGTVaults;
     mapping(address bearnVaults => bool) isBearnVault;
 
-    constructor(
-        address _bearnVaultManager,
-        address _yBGT,
-        address _beraVaultFactory
-    ) {
+    constructor(address _bearnVaultManager, address _beraVaultFactory) {
         bearnVaultManager = BearnVaultManager(_bearnVaultManager);
-        yBGT = ERC20(_yBGT);
         beraVaultFactory = IBeraVaultFactory(_beraVaultFactory);
+    }
+
+    function initialize(address _yBGT) external {
+        require(msg.sender == address(bearnVaultManager));
+        // Should only be initialized once
+        require(address(yBGT) == address(0));
+
+        yBGT = ERC20(_yBGT);
     }
 
     function setVaultManager(address _newBearnVaultManager) external {
@@ -49,6 +54,8 @@ contract BearnVaultFactory {
     function createVaults(
         address stakingToken
     ) external returns (address compoundingVault, address yBGTVault) {
+        require(address(yBGT) != address(0), NotInitialized());
+
         // Check if BeraVault exists
         address beraVault = beraVaultFactory.getVault(stakingToken);
         require(beraVault != address(0), NoBeraVault());

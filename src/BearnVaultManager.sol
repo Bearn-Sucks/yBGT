@@ -27,6 +27,7 @@ contract BearnVaultManager is Ownable {
         require(msg.sender == bearnVaultFactory, NotFactory());
 
         IBearnVault(bearnVault).acceptManagement();
+        IBearnVault(bearnVault).setPerformanceFeeRecipient(address(this));
     }
 
     /// @notice Makes it so the Manager can do arbitrary calls

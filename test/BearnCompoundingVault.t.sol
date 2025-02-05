@@ -76,26 +76,52 @@ contract BearnCompoundingVaultTest is BearnVaultTest {
         vm.prank(user);
         bearnCompoundingVault.deposit(1 ether, user);
 
-        uint256 balanceBefore = bearnCompoundingVault.previewRedeem(
+        uint256 userBalanceBefore = bearnCompoundingVault.previewRedeem(
             bearnCompoundingVault.balanceOf(user)
         );
-        console.log("user LP balance before", balanceBefore);
+        console.log("user LP balance before", userBalanceBefore);
 
         // hold auction, notify, then wait for a week to get all the rewards
-        _holdAuction();
+        uint256 addedAmount = _holdAuction();
         _pushRewardsAndReport(address(bearnCompoundingVault), 1 ether);
-        vm.warp(block.timestamp + 86400 * 7);
+        vm.warp(block.timestamp + 86400 * 10);
 
         vm.prank(user);
         bearnVault.getReward();
-        uint256 balanceAfter = bearnCompoundingVault.previewRedeem(
+        uint256 userBalanceAfter = bearnCompoundingVault.previewRedeem(
             bearnCompoundingVault.balanceOf(user)
         );
-        console.log("user LP balance after", balanceAfter);
-        assertGt(balanceAfter, balanceBefore);
+        console.log("user LP balance after", userBalanceAfter);
+
+        console.log(
+            "management LP balance after",
+            bearnCompoundingVault.previewRedeem(
+                bearnCompoundingVault.balanceOf(address(bearnVaultManager))
+            )
+        );
+        console.log(
+            "protocol LP balance after",
+            bearnCompoundingVault.previewRedeem(
+                bearnCompoundingVault.balanceOf(protocolFeeRecipient)
+            )
+        );
+
+        assertApproxEqAbs(
+            (userBalanceAfter - userBalanceBefore) +
+                bearnCompoundingVault.previewRedeem(
+                    bearnCompoundingVault.balanceOf(address(bearnVaultManager))
+                ) +
+                bearnCompoundingVault.previewRedeem(
+                    bearnCompoundingVault.balanceOf(protocolFeeRecipient)
+                ),
+            addedAmount,
+            0.1 gwei
+        );
+
+        assertGt(userBalanceAfter, userBalanceBefore);
     }
 
-    function _holdAuction() internal {
+    function _holdAuction() internal returns (uint256) {
         _pushRewardsAndReport(address(bearnCompoundingVault), 1 ether);
 
         // Wait some time for price to drop a bit
@@ -108,10 +134,17 @@ contract BearnCompoundingVaultTest is BearnVaultTest {
         wbera.deposit{value: 100 ether}();
         wbera.approve(address(bearnCompoundingVaultAuction), type(uint256).max);
 
+        uint256 amount = bearnCompoundingVaultAuction.getAmountNeeded(
+            address(yBGT),
+            yBGT.balanceOf(address(bearnCompoundingVaultAuction))
+        );
+
         bearnCompoundingVaultAuction.take(address(yBGT));
 
         vm.warp(block.timestamp + 86400 * 6);
 
         vm.stopPrank();
+
+        return amount;
     }
 }
