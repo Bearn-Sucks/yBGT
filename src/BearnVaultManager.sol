@@ -5,15 +5,12 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
 
+import {BearnExecutor} from "src/bases/BearnExecutor.sol";
+
 /// @title BearnVaultManager
 /// @author Bearn.sucks
 /// @notice Used to manage vaults, makes it easier to transfer ownership of all vaults if needed
-contract BearnVaultManager is Ownable {
-    enum Operation {
-        Call,
-        DelegateCall
-    }
-
+contract BearnVaultManager is Ownable, BearnExecutor {
     /* ========== ERRORS ========== */
     error NotFactory();
 
@@ -48,20 +45,6 @@ contract BearnVaultManager is Ownable {
         onlyOwner
         returns (bool success, bytes memory _returndata)
     {
-        if (operation == Operation.Call) {
-            (success, _returndata) = to.call{value: value}(data);
-        } else {
-            (success, _returndata) = to.delegatecall(data);
-        }
-
-        // If the call reverted. Return the error.
-        if (!allowFailure && !success) {
-            assembly {
-                let ptr := mload(0x40)
-                let size := returndatasize()
-                returndatacopy(ptr, 0, size)
-                revert(ptr, size)
-            }
-        }
+        return _execute(to, value, data, operation, allowFailure);
     }
 }

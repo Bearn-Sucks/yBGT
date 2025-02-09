@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity >=0.8.18;
 
-import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import {AccessControlEnumerable} from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
@@ -11,12 +11,17 @@ import {WBERA} from "@berachain/contracts/WBERA.sol";
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
 import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
 
+import {BearnExecutor} from "src/bases/BearnExecutor.sol";
+
 /// @title BearnVoter
 /// @author Bearn.sucks
 /// @notice
 ///   Contract that holds the BGT backing yBGT and also votes with those BGT.
-///   Should be behind a TransparentUpgradeable Proxy.
-contract BearnVoter is AccessControlEnumerableUpgradeable {
+contract BearnVoter is AccessControlEnumerable, BearnExecutor {
+    /* ========== EVENTS ========== */
+
+    event NewTreasury(address indexed newTreasury);
+
     /// @notice In charge of voting
     bytes32 public immutable MANAGER_ROLE = keccak256("MANAGER_ROLE");
     /// @notice Redeem module
@@ -25,100 +30,64 @@ contract BearnVoter is AccessControlEnumerableUpgradeable {
     IBGT public immutable bgt;
     WBERA public immutable wbera;
     IGovernor public immutable beraGovernance;
+    address public treasury;
 
-    IBearnVaultFactory public immutable bearnVaultFactory;
-
-    /* ========== CONSTRUCTOR AND INITIALIZER ========== */
+    /* ========== CONSTRUCTOR ========== */
 
     constructor(
         address _bgt,
         address _wbera,
         address _beraGovernance,
-        address _bearnVaultFactory
+        address _treasury
     ) {
         bgt = IBGT(_bgt);
         wbera = WBERA(payable(_wbera));
         beraGovernance = IGovernor(_beraGovernance);
-        bearnVaultFactory = IBearnVaultFactory(_bearnVaultFactory);
-    }
+        treasury = _treasury;
+        emit NewTreasury(_treasury);
 
-    /// @notice Should be called on upgrade with upgradeToAndCall()
-    function initialize(address bearnBGT) external initializer {
+        /// @dev
+        ///     Don't froget to grant the following role pairs after deployment
+        ///     REDEEMER_ROLE to yBGT
+        ///     MANAGER_ROLE to BearnVoteManager
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(MANAGER_ROLE, msg.sender);
-        _grantRole(REDEEMER_ROLE, bearnBGT);
     }
 
-    /* ========== VOTING ========== */
+    /* ========== MANAGER ACTIONS ========== */
 
-    function submitProposal(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description
-    ) external onlyRole(MANAGER_ROLE) returns (uint256 proposalId) {
-        return beraGovernance.propose(targets, values, calldatas, description);
+    function setTreasury(
+        address _treasury
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        treasury = _treasury;
+        emit NewTreasury(_treasury);
     }
 
-    function submitVotes(
-        uint256 proposalId,
-        uint8 support,
-        string calldata reason,
-        bytes memory params
-    ) external onlyRole(MANAGER_ROLE) returns (uint256 balance) {
-        return
-            beraGovernance.castVoteWithReasonAndParams(
-                proposalId,
-                support,
-                reason,
-                params
-            );
-    }
-
-    /* ========== BOOSTING ========== */
-    function queueBoost(
-        bytes calldata pubkey,
-        uint128 amount
-    ) external onlyRole(MANAGER_ROLE) {
-        bgt.queueBoost(pubkey, amount);
-    }
-
-    function cancelBoost(
-        bytes calldata pubkey,
-        uint128 amount
-    ) external onlyRole(MANAGER_ROLE) {
-        bgt.cancelBoost(pubkey, amount);
-    }
-
-    /// @notice Activates already queued boost
-    /// @dev Left open to the public since anyone can activate boost that is queued and ready
-    /// @param pubkey Public key of the boostee
-    function activateBoost(bytes calldata pubkey) external returns (bool) {
-        return bgt.activateBoost(address(this), pubkey);
-    }
-
-    function queueDropBoost(
-        bytes calldata pubkey,
-        uint128 amount
-    ) external onlyRole(MANAGER_ROLE) {
-        bgt.queueDropBoost(pubkey, amount);
-    }
-
-    function cancelDropBoost(
-        bytes calldata pubkey,
-        uint128 amount
-    ) external onlyRole(MANAGER_ROLE) {
-        bgt.cancelDropBoost(pubkey, amount);
-    }
-
-    /// @notice Activates already queued boost
-    /// @dev Left open to the public since anyone can activate boost that is queued and ready
-    /// @param pubkey Public key of the boostee
-    function dropBoost(bytes calldata pubkey) external returns (bool) {
-        return bgt.dropBoost(address(this), pubkey);
+    /// @notice Makes it so the Manager can vote, propose, boost, drop boost, etc.
+    /// @dev
+    ///     This allows the Voter contract to be immutable while being able to respond to Berachain
+    ///     protocol changes by upgrading BearnVoterManger if needed
+    /// @param to Tx destination
+    /// @param value Tx value
+    /// @param data Tx data
+    /// @param operation Call or delegate call
+    /// @param allowFailure Allow failure or revert
+    function execute(
+        address to,
+        uint256 value,
+        bytes calldata data,
+        Operation operation,
+        bool allowFailure
+    )
+        public
+        payable
+        onlyRole(MANAGER_ROLE)
+        returns (bool success, bytes memory _returndata)
+    {
+        return _execute(to, value, data, operation, allowFailure);
     }
 
     /* ========== REDEEMING ========== */
+
     function redeem(
         address to,
         uint256 amount
