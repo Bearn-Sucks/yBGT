@@ -25,7 +25,6 @@ contract BearnVoterManager is AccessControlEnumerable {
     WBERA public immutable wbera;
     IBeraGovenor public immutable beraGovernance;
 
-    IBearnVaultFactory public immutable bearnVaultFactory;
     IBearnVoter public immutable bearnVoter;
 
     /* ========== CONSTRUCTOR AND INITIALIZER ========== */
@@ -33,13 +32,11 @@ contract BearnVoterManager is AccessControlEnumerable {
         address _bgt,
         address _wbera,
         address _beraGovernance,
-        address _bearnVaultFactory,
         address _bearnVoter
     ) {
         bgt = IBGT(_bgt);
         wbera = WBERA(payable(_wbera));
         beraGovernance = IBeraGovenor(_beraGovernance);
-        bearnVaultFactory = IBearnVaultFactory(_bearnVaultFactory);
 
         bearnVoter = IBearnVoter(_bearnVoter);
 

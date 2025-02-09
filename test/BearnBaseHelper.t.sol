@@ -13,6 +13,7 @@ import {IBaseAuctioneer} from "@yearn/tokenized-strategy-periphery/Bases/Auction
 
 import {BearnBGT} from "src/BearnBGT.sol";
 import {BearnVoter} from "src/BearnVoter.sol";
+import {BearnVoterManager} from "src/BearnVoterManager.sol";
 import {BearnVaultFactory} from "src/BearnVaultFactory.sol";
 import {BearnVault} from "src/BearnVault.sol";
 import {BearnVaultManager} from "src/BearnVaultManager.sol";
@@ -27,6 +28,8 @@ abstract contract BearnBaseHelper is BeraHelper {
     address internal bearnManager = makeAddr("bearnManager");
     address internal protocolFeeRecipient = makeAddr("protocolFeeRecipient");
     address internal user = makeAddr("user");
+    address internal user2 = makeAddr("user2");
+    address internal treasury = makeAddr("treasury");
 
     ProxyAdmin internal proxyAdmin;
     BearnVaultManager internal bearnVaultManager;
@@ -34,6 +37,7 @@ abstract contract BearnBaseHelper is BeraHelper {
     BearnBGT internal yBGT;
     BearnBGTFeeModule internal feeModule;
     BearnVoter internal bearnVoter;
+    BearnVoterManager internal bearnVoterManager;
     BearnVaultFactory internal bearnVaultFactory;
     IBearnVault internal bearnVault;
     IBearnCompoundingVault internal bearnCompoundingVault;
@@ -87,28 +91,22 @@ abstract contract BearnBaseHelper is BeraHelper {
             address(factory)
         );
 
-        // Deploy Bearn Voter Implementation and Proxy
-        address bearnVoterImp = address(
-            new BearnVoter(
-                address(bgt),
-                address(wbera),
-                governance,
-                address(bearnVaultFactory)
-            )
+        // Deploy Bearn Voter
+
+        bearnVoter = new BearnVoter(
+            address(bgt),
+            address(wbera),
+            address(governance),
+            address(treasury)
         );
 
-        proxyAdmin = new ProxyAdmin();
-
-        TransparentUpgradeableProxy bearnVoterProxy = new TransparentUpgradeableProxy(
-                bearnVoterImp,
-                address(proxyAdmin),
-                abi.encodeWithSelector(
-                    BearnVoter.initialize.selector,
-                    address(yBGT)
-                )
-            );
-
-        bearnVoter = BearnVoter(payable(bearnVoterProxy));
+        // Deploy Bearn Voter Manager
+        bearnVoterManager = new BearnVoterManager(
+            address(bgt),
+            address(wbera),
+            address(governance),
+            address(bearnVoter)
+        );
 
         // Deploy Fee Module
         feeModule = new BearnBGTFeeModule(0, 0, false);
@@ -127,6 +125,13 @@ abstract contract BearnBaseHelper is BeraHelper {
         // Initialize and pass ownership
         bearnVaultFactory.initialize(address(yBGT));
         bearnVaultFactory.setVaultManager(address(bearnVaultManager));
+
+        // Grant roles on Voter
+        bearnVoter.grantRole(
+            bearnVoter.MANAGER_ROLE(),
+            address(bearnVoterManager)
+        );
+        bearnVoter.grantRole(bearnVoter.REDEEMER_ROLE(), address(yBGT));
 
         // Create vaults to test with
         (
@@ -148,6 +153,16 @@ abstract contract BearnBaseHelper is BeraHelper {
         // set up user balances
         vm.startPrank(user);
         vm.deal(user, 100 ether);
+        wbera.deposit{value: 10 ether}();
+        // set up approvals
+        wbera.approve(address(bearnVault), type(uint256).max);
+        wbera.approve(address(bearnCompoundingVault), type(uint256).max);
+
+        vm.stopPrank();
+
+        // set up user2 balances
+        vm.startPrank(user2);
+        vm.deal(user2, 100 ether);
         wbera.deposit{value: 10 ether}();
         // set up approvals
         wbera.approve(address(bearnVault), type(uint256).max);

@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity >=0.8.18;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import {AuctionSwapper, Auction} from "@yearn/tokenized-strategy-periphery/swappers/AuctionSwapper.sol";
 
 import {BearnVault} from "src/BearnVault.sol";
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 contract BearnCompoundingVault is BearnVault, AuctionSwapper {
     // @TODO: Fork AuctionSwapper and AuctionFactory to resolve CoW and Yearn addresses that are hardcoded
+    using SafeERC20 for IERC20;
 
     /* ========== ERRORS ========== */
 
@@ -33,7 +35,7 @@ contract BearnCompoundingVault is BearnVault, AuctionSwapper {
 
     function _harvestAndReport()
         internal
-        override(BearnVault)
+        override
         returns (uint256 _totalAssets)
     {
         // This claims the BGT to the Bearn Voter in return for yBGT

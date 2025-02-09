@@ -7,7 +7,6 @@ import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20P
 import {AccessControlEnumerable} from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
 import {IRewardVaultFactory as IBeraVaultFactory} from "@berachain/contracts/pol/interfaces/IRewardVaultFactory.sol";
-import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
 import {IBearnBGTFeeModule} from "src/interfaces/IBearnBGTFeeModule.sol";
 import {IBearnVoter} from "src/interfaces/IBearnVoter.sol";
 

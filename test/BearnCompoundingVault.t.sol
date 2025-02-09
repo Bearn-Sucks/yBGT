@@ -3,9 +3,9 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import {BearnVaultTest} from "test/BearnVault.t.sol";
+import {BearnBGTEarnerVaultTest} from "test/BearnBGTEarnerVault.t.sol";
 
-contract BearnCompoundingVaultTest is BearnVaultTest {
+contract BearnCompoundingVaultTest is BearnBGTEarnerVaultTest {
     /// @dev A function invoked before each test case is run.
     function setUp() public virtual override {
         super.setUp();

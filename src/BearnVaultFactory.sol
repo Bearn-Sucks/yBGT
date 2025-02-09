@@ -6,6 +6,8 @@ import {IRewardVaultFactory as IBeraVaultFactory} from "@berachain/contracts/pol
 import {BearnVaultManager} from "src/BearnVaultManager.sol";
 import {BearnVault} from "src/BearnVault.sol";
 import {BearnCompoundingVault} from "src/BearnCompoundingVault.sol";
+import {BearnBGTEarnerVault} from "src/BearnBGTEarnerVault.sol";
+
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
 import {IBearnCompoundingVault} from "src/interfaces/IBearnCompoundingVault.sol";
 
@@ -74,7 +76,7 @@ contract BearnVaultFactory {
             )
         );
         yBGTVault = address(
-            new BearnVault(
+            new BearnBGTEarnerVault(
                 string.concat(
                     "Bearn ",
                     ERC20(stakingToken).symbol(),
