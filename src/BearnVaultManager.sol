@@ -3,7 +3,11 @@ pragma solidity >=0.8.18;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+import {Auction} from "@yearn/tokenized-strategy-periphery/Auctions/Auction.sol";
+
+import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
+import {IBearnVoter} from "src/interfaces/IBearnVoter.sol";
 
 import {BearnExecutor} from "src/bases/BearnExecutor.sol";
 
@@ -12,19 +16,35 @@ import {BearnExecutor} from "src/bases/BearnExecutor.sol";
 /// @notice Used to manage vaults, makes it easier to transfer ownership of all vaults if needed
 contract BearnVaultManager is Ownable, BearnExecutor {
     /* ========== ERRORS ========== */
+
     error NotFactory();
 
-    constructor(address _bearnVaultFactory) {
-        bearnVaultFactory = _bearnVaultFactory;
-    }
-
     address public immutable bearnVaultFactory;
+    address public immutable bearnVoter;
+
+    /* ========== CONSTRUCTOR ========== */
+
+    constructor(address _bearnVaultFactory, address _bearnVoter) {
+        bearnVaultFactory = _bearnVaultFactory;
+        bearnVoter = _bearnVoter;
+    }
 
     function registerVault(address bearnVault) external {
         require(msg.sender == bearnVaultFactory, NotFactory());
 
         IBearnVault(bearnVault).acceptManagement();
-        IBearnVault(bearnVault).setPerformanceFeeRecipient(address(this));
+        address treasury = IBearnVoter(bearnVoter).treasury();
+        IBearnVault(bearnVault).setPerformanceFeeRecipient(treasury);
+    }
+
+    function registerAuction(address auction) external {
+        require(
+            msg.sender ==
+                IBearnVaultFactory(bearnVaultFactory).bearnAuctionFactory(),
+            NotFactory()
+        );
+
+        Auction(auction).acceptGovernance();
     }
 
     /// @notice Makes it so the Manager can do arbitrary calls

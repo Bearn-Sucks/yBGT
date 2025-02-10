@@ -6,29 +6,19 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 import {AuctionSwapper, Auction} from "@yearn/tokenized-strategy-periphery/swappers/AuctionSwapper.sol";
 
+import {IBearnAuctionFactory} from "src/interfaces/IBearnAuctionFactory.sol";
+
 import {BearnVault} from "src/BearnVault.sol";
 
-contract BearnCompoundingVault is BearnVault, AuctionSwapper {
-    // @TODO: Fork AuctionSwapper and AuctionFactory to resolve CoW and Yearn addresses that are hardcoded
+contract BearnCompoundingVault is BearnVault {
     using SafeERC20 for IERC20;
-
-    /* ========== ERRORS ========== */
-
-    error AuctionNotDeployed();
-
-    /* ========== EVENTS ========== */
-
-    /* ========== MODIFIERS ========== */
 
     constructor(
         string memory _name,
         address _asset,
         address _beraVault,
         address _yBGT
-    ) BearnVault(_name, _asset, _beraVault, _yBGT) {
-        // Auction length should be 6 days, leaves 1 days for management to change settings if needed
-        _enableAuction(address(yBGT), address(asset), 518400, 1e6);
-    }
+    ) BearnVault(_name, _asset, _beraVault, _yBGT) {}
 
     /// @notice Override initialization since compounding vaults don't have yBGT as a reward
     function _initialize() internal override {}
@@ -41,7 +31,7 @@ contract BearnCompoundingVault is BearnVault, AuctionSwapper {
         // This claims the BGT to the Bearn Voter in return for yBGT
         yBGT.wrap(address(asset));
 
-        _kickAuction(address(yBGT));
+        _kickAuction();
 
         // stake any excess asset (from auctions)
         uint256 excessAmount = asset.balanceOf(address(this));
@@ -53,20 +43,23 @@ contract BearnCompoundingVault is BearnVault, AuctionSwapper {
         _totalAssets = beraVault.balanceOf(address(this));
     }
 
-    /* ========== MANAGEMENT ACTIONS ========== */
-    function enableAuction() external onlyManagement {
-        Auction(auction).enable(address(yBGT));
+    /// @dev Kick an auction
+    function _kickAuction() internal {
+        IBearnAuctionFactory auctionFactory = IBearnAuctionFactory(
+            bearnVaultFactory.bearnAuctionFactory()
+        );
+
+        uint256 _balance = IERC20(yBGT).balanceOf(address(this));
+        IERC20(yBGT).safeApprove(address(auctionFactory), _balance);
+
+        auctionFactory.kickAuction(address(asset), _balance);
     }
 
-    function disableAuction() external onlyManagement {
-        _disableAuction(address(yBGT));
-    }
+    function auction() external view returns (address) {
+        IBearnAuctionFactory auctionFactory = IBearnAuctionFactory(
+            bearnVaultFactory.bearnAuctionFactory()
+        );
 
-    function setStartingPrice(uint256 _startingPrice) external onlyManagement {
-        Auction(auction).setStartingPrice(_startingPrice);
-    }
-
-    function sweepFromAuction(address _token) external onlyManagement {
-        Auction(auction).sweep(_token);
+        return auctionFactory.wantToAuction(address(asset));
     }
 }

@@ -3,11 +3,12 @@ pragma solidity >=0.8.18;
 
 import {IRewardVaultFactory as IBeraVaultFactory} from "@berachain/contracts/pol/interfaces/IRewardVaultFactory.sol";
 
-import {BearnVaultManager} from "src/BearnVaultManager.sol";
 import {BearnVault} from "src/BearnVault.sol";
 import {BearnCompoundingVault} from "src/BearnCompoundingVault.sol";
 import {BearnBGTEarnerVault} from "src/BearnBGTEarnerVault.sol";
 
+import {IBearnVaultManager} from "src/interfaces/IBearnVaultManager.sol";
+import {IBearnAuctionFactory} from "src/interfaces/IBearnAuctionFactory.sol";
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
 import {IBearnCompoundingVault} from "src/interfaces/IBearnCompoundingVault.sol";
 
@@ -18,45 +19,84 @@ contract BearnVaultFactory {
 
     error NotInitialized();
     error NoBeraVault();
+    error NotVaultManager();
 
     /* ========== EVENTS ========== */
+
+    event NewVaultManager(address newVaultManager);
+    event NewAuctionFactory(address newAuctionFactory);
     event NewVaults(
         address indexed stakingToken,
         address compoundingVault,
         address yBGTVault
     );
 
+    /* ========== MODIFIERS ========== */
+
+    modifier onlyManager() {
+        _onlyManager();
+        _;
+    }
+
+    function _onlyManager() internal view {
+        require(msg.sender == address(bearnVaultManager), NotVaultManager());
+    }
+
+    /* ========== IMMUTABLES ========== */
+
     IBeraVaultFactory public immutable beraVaultFactory;
 
-    BearnVaultManager public bearnVaultManager;
-    ERC20 public yBGT;
+    address public immutable keeper; // yearn permissionless keeper
+    ERC20 public immutable yBGT;
 
-    mapping(address stakingToken => address) compoundingVaults;
-    mapping(address stakingToken => address) yBGTVaults;
-    mapping(address bearnVaults => bool) isBearnVault;
+    /* ========== STATES ========== */
 
-    constructor(address _bearnVaultManager, address _beraVaultFactory) {
-        bearnVaultManager = BearnVaultManager(_bearnVaultManager);
+    IBearnVaultManager public bearnVaultManager;
+    IBearnAuctionFactory public bearnAuctionFactory;
+
+    mapping(address stakingToken => address) public stakingToCompoundingVaults;
+    mapping(address stakingToken => address) public stakingToBGTEarnerVaults;
+    mapping(address bearnVaults => bool) public isBearnVault;
+
+    /* ========== CONSTRUCTOR ========== */
+
+    constructor(
+        address _bearnVaultManager,
+        address _beraVaultFactory,
+        address _yBGT,
+        address _keeper
+    ) {
+        bearnVaultManager = IBearnVaultManager(_bearnVaultManager);
         beraVaultFactory = IBeraVaultFactory(_beraVaultFactory);
-    }
-
-    function initialize(address _yBGT) external {
-        require(msg.sender == address(bearnVaultManager));
-        // Should only be initialized once
-        require(address(yBGT) == address(0));
-
         yBGT = ERC20(_yBGT);
+        keeper = _keeper;
     }
 
-    function setVaultManager(address _newBearnVaultManager) external {
-        require(msg.sender == address(bearnVaultManager));
-        bearnVaultManager = BearnVaultManager(_newBearnVaultManager);
+    function setVaultManager(
+        address _newBearnVaultManager
+    ) external onlyManager {
+        if (address(bearnVaultManager) != _newBearnVaultManager) {
+            bearnVaultManager = IBearnVaultManager(_newBearnVaultManager);
+
+            emit NewVaultManager(_newBearnVaultManager);
+        }
+    }
+
+    function setAuctionFactory(
+        address _newAuctionFactory
+    ) external onlyManager {
+        if (address(bearnAuctionFactory) != _newAuctionFactory) {
+            bearnAuctionFactory = IBearnAuctionFactory(_newAuctionFactory);
+
+            emit NewAuctionFactory(_newAuctionFactory);
+        }
     }
 
     function createVaults(
         address stakingToken
     ) external returns (address compoundingVault, address yBGTVault) {
         require(address(yBGT) != address(0), NotInitialized());
+        require(address(bearnAuctionFactory) != address(0), NotInitialized());
 
         // Check if BeraVault exists
         address beraVault = beraVaultFactory.getVault(stakingToken);
@@ -88,6 +128,17 @@ contract BearnVaultFactory {
             )
         );
 
+        // Deploy Auction
+        bearnAuctionFactory.deployAuction(
+            stakingToken,
+            compoundingVault,
+            address(bearnVaultManager)
+        );
+
+        // Transfer keepers
+        IBearnVault(compoundingVault).setKeeper(keeper);
+        IBearnVault(yBGTVault).setKeeper(keeper);
+
         // Transfer managements
         IBearnVault(compoundingVault).setPendingManagement(
             address(bearnVaultManager)
@@ -97,19 +148,11 @@ contract BearnVaultFactory {
         bearnVaultManager.registerVault(yBGTVault);
 
         // Record the vaults
-        compoundingVaults[stakingToken] = compoundingVault;
-        yBGTVaults[stakingToken] = yBGTVault;
+        stakingToCompoundingVaults[stakingToken] = compoundingVault;
+        stakingToBGTEarnerVaults[stakingToken] = yBGTVault;
         isBearnVault[compoundingVault] = true;
         isBearnVault[yBGTVault] = true;
 
         emit NewVaults(stakingToken, compoundingVault, yBGTVault);
-    }
-
-    function report(address bearnVault) external {
-        // @TODO: check if this can be left without authorization
-        // ideally _harvetAndReport() will only be able to claim
-        // yBGT and start auctions if auctions are enabled (and
-        // will revert if auctions are disabled)
-        IBearnVault(bearnVault).report();
     }
 }

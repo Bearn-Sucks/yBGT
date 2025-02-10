@@ -94,9 +94,9 @@ contract BearnCompoundingVaultTest is BearnBGTEarnerVaultTest {
         console.log("user LP balance after", userBalanceAfter);
 
         console.log(
-            "management LP balance after",
+            "treasury LP balance after",
             bearnCompoundingVault.previewRedeem(
-                bearnCompoundingVault.balanceOf(address(bearnVaultManager))
+                bearnCompoundingVault.balanceOf(address(treasury))
             )
         );
         console.log(
@@ -109,7 +109,7 @@ contract BearnCompoundingVaultTest is BearnBGTEarnerVaultTest {
         assertApproxEqAbs(
             (userBalanceAfter - userBalanceBefore) +
                 bearnCompoundingVault.previewRedeem(
-                    bearnCompoundingVault.balanceOf(address(bearnVaultManager))
+                    bearnCompoundingVault.balanceOf(address(treasury))
                 ) +
                 bearnCompoundingVault.previewRedeem(
                     bearnCompoundingVault.balanceOf(protocolFeeRecipient)
@@ -125,7 +125,7 @@ contract BearnCompoundingVaultTest is BearnBGTEarnerVaultTest {
         _pushRewardsAndReport(address(bearnCompoundingVault), 1 ether);
 
         // Wait some time for price to drop a bit
-        vm.warp(block.timestamp + 86400 * 1);
+        vm.warp(block.timestamp + 20 hours);
 
         // Prepare auction taker
         address auctionTaker = makeAddr("auctionTaker");
@@ -139,8 +139,10 @@ contract BearnCompoundingVaultTest is BearnBGTEarnerVaultTest {
             yBGT.balanceOf(address(bearnCompoundingVaultAuction))
         );
 
+        // Take Auction
         bearnCompoundingVaultAuction.take(address(yBGT));
 
+        // Speed up time for rewards to be distributed
         vm.warp(block.timestamp + 86400 * 6);
 
         vm.stopPrank();

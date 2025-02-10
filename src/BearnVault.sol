@@ -6,16 +6,24 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 import {TokenizedStaker} from "@yearn/tokenized-strategy-periphery/Bases/Staker/TokenizedStaker.sol";
 import {TokenizedStrategy} from "@yearn/tokenized-strategy/TokenizedStrategy.sol";
+
+import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
 import {IBearnVoter} from "src/interfaces/IBearnVoter.sol";
 import {IBearnBGT} from "src/interfaces/IBearnBGT.sol";
 
-
 abstract contract BearnVault is TokenizedStaker {
     // @TODO: fork TokenizedStrategy to replace hardcoded address for getting protocol fees
 
+    // @TODO: check report() can be left without authorization
+    // keeper is currently pointed to the permissionless keeper
+    // ideally _harvetAndReport() will only be able to claim
+    // yBGT and start auctions if auctions are enabled (and
+    // will revert if auctions are disabled)
+
     using SafeERC20 for IERC20;
 
+    IBearnVaultFactory public immutable bearnVaultFactory;
     IBeraVault public immutable beraVault;
     IBearnVoter public immutable bearnVoter;
     IBearnBGT public immutable yBGT;
@@ -26,6 +34,7 @@ abstract contract BearnVault is TokenizedStaker {
         address _beraVault,
         address _yBGT
     ) TokenizedStaker(_asset, _name) {
+        bearnVaultFactory = IBearnVaultFactory(msg.sender);
         beraVault = IBeraVault(_beraVault);
         yBGT = IBearnBGT(_yBGT);
 

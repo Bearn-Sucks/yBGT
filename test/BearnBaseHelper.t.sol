@@ -11,10 +11,13 @@ import {POLTest as BeraHelper} from "@berachain/test/pol/POL.t.sol";
 
 import {IBaseAuctioneer} from "@yearn/tokenized-strategy-periphery/Bases/Auctioneer/IBaseAuctioneer.sol";
 
+import {Keeper} from "src/mock/MockKeeper.sol";
+
 import {BearnBGT} from "src/BearnBGT.sol";
 import {BearnVoter} from "src/BearnVoter.sol";
 import {BearnVoterManager} from "src/BearnVoterManager.sol";
 import {BearnVaultFactory} from "src/BearnVaultFactory.sol";
+import {BearnAuctionFactory} from "src/BearnAuctionFactory.sol";
 import {BearnVault} from "src/BearnVault.sol";
 import {BearnVaultManager} from "src/BearnVaultManager.sol";
 import {BearnCompoundingVault} from "src/BearnCompoundingVault.sol";
@@ -31,6 +34,8 @@ abstract contract BearnBaseHelper is BeraHelper {
     address internal user2 = makeAddr("user2");
     address internal treasury = makeAddr("treasury");
 
+    Keeper internal keeper;
+
     ProxyAdmin internal proxyAdmin;
     BearnVaultManager internal bearnVaultManager;
     IBeraVault internal beraVault;
@@ -39,6 +44,7 @@ abstract contract BearnBaseHelper is BeraHelper {
     BearnVoter internal bearnVoter;
     BearnVoterManager internal bearnVoterManager;
     BearnVaultFactory internal bearnVaultFactory;
+    BearnAuctionFactory internal bearnAuctionFactory;
     IBearnVault internal bearnVault;
     IBearnCompoundingVault internal bearnCompoundingVault;
     IBaseAuctioneer internal bearnCompoundingVaultAuction;
@@ -78,21 +84,20 @@ abstract contract BearnBaseHelper is BeraHelper {
             "TokenizedStrategy"
         );
 
-        deployCodeTo(
-            "AuctionFactory",
-            0xa076c247AfA44f8F006CA7f21A4EF59f7e4dc605
-        );
-        vm.label(0xa076c247AfA44f8F006CA7f21A4EF59f7e4dc605, "AuctionFactory");
+        // deployCodeTo(
+        //     "AuctionFactory",
+        //     0xa076c247AfA44f8F006CA7f21A4EF59f7e4dc605
+        // );
+        // vm.label(0xa076c247AfA44f8F006CA7f21A4EF59f7e4dc605, "AuctionFactory");
+
+        keeper = Keeper(0x52605BbF54845f520a3E94792d019f62407db2f8);
+
+        deployCodeTo("Keeper", address(keeper));
+        vm.label(address(keeper), "PermissionlessKeeper");
 
         // Deploy Bearn contracts
-        // Deploy Bearn Vault Factory
-        bearnVaultFactory = new BearnVaultFactory(
-            bearnManager,
-            address(factory)
-        );
 
         // Deploy Bearn Voter
-
         bearnVoter = new BearnVoter(
             address(bgt),
             address(wbera),
@@ -119,11 +124,31 @@ abstract contract BearnBaseHelper is BeraHelper {
             address(feeModule)
         );
 
-        // Deploy Bearn Vault Manager
-        bearnVaultManager = new BearnVaultManager(address(bearnVaultFactory));
+        // Deploy Bearn Vault Factory
+        bearnVaultFactory = new BearnVaultFactory(
+            bearnManager,
+            address(factory),
+            address(yBGT),
+            0x52605BbF54845f520a3E94792d019f62407db2f8 // yearn permissionless keeper
+        );
 
-        // Initialize and pass ownership
-        bearnVaultFactory.initialize(address(yBGT));
+        // Deploy Bearn Vault Manager
+        bearnVaultManager = new BearnVaultManager(
+            address(bearnVaultFactory),
+            address(bearnVoter)
+        );
+
+        // Deploy Bearn Auction Factory
+        bearnAuctionFactory = new BearnAuctionFactory(
+            address(wbera),
+            address(yBGT),
+            address(bearnVaultFactory)
+        );
+
+        // Register Bearn Auction Factory
+        bearnVaultFactory.setAuctionFactory(address(bearnAuctionFactory));
+
+        // Pass ownership of Vault Factory
         bearnVaultFactory.setVaultManager(address(bearnVaultManager));
 
         // Grant roles on Voter
@@ -183,7 +208,6 @@ abstract contract BearnBaseHelper is BeraHelper {
 
         vm.warp(block.timestamp + 3);
 
-        vm.prank(bearnManager);
-        bearnVaultFactory.report(_bearnVault);
+        keeper.report(_bearnVault);
     }
 }

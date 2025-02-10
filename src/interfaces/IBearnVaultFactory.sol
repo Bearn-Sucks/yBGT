@@ -3,26 +3,37 @@ pragma solidity >=0.8.18;
 
 interface IBearnVaultFactory {
     /* ========== ERRORS ========== */
+
+    error NotInitialized();
     error NoBeraVault();
 
     /* ========== EVENTS ========== */
+
     event NewVaults(
         address indexed stakingToken,
         address compoundingVault,
         address yBGTVault
     );
 
+    function keeper() external view returns (address);
+
     function yBGT() external view returns (address);
+
+    function bearnVaultManager() external view returns (address);
+
+    function bearnAuctionFactory() external view returns (address);
 
     function beraVaultFactory() external view returns (address);
 
-    function compoundingVaults(
+    function stakingToCompoundingVaults(
         address stakingToken
     ) external view returns (address);
 
-    function yBGTVaults(address stakingToken) external view returns (address);
+    function stakingToBGTEarnerVaults(
+        address stakingToken
+    ) external view returns (address);
 
-    function isBearnVault(address stakingToken) external view returns (bool);
+    function isBearnVault(address bearnVault) external view returns (bool);
 
     function createVaults(
         address stakingToken
