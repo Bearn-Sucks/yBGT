@@ -30,7 +30,7 @@ contract BearnBGTEarnerVault is BearnVault {
 
     /// @notice Adds yBGT as an instantly released reward
     function _initialize() internal override {
-        // using 1 second since _addReward() isn't overrideable
+        // using 1 second to signal instant release
         _addReward(address(yBGT), address(this), 1);
     }
 
@@ -69,6 +69,7 @@ contract BearnBGTEarnerVault is BearnVault {
         uint256 shares,
         address receiver
     ) internal virtual override {
+        // Claim before deposits, withdraws, and transfers
         _claimAndNotify();
         super._preDepositHook(assets, shares, receiver);
     }
@@ -80,6 +81,7 @@ contract BearnBGTEarnerVault is BearnVault {
         address owner,
         uint256 maxLoss
     ) internal virtual override {
+        // Claim before deposits, withdraws, and transfers
         _claimAndNotify();
         super._preWithdrawHook(assets, shares, receiver, owner, maxLoss);
     }
@@ -89,57 +91,8 @@ contract BearnBGTEarnerVault is BearnVault {
         address to,
         uint256 amount
     ) internal virtual override {
+        // Claim before deposits, withdraws, and transfers
         _claimAndNotify();
         super._preTransferHook(from, to, amount);
-    }
-
-    /// @notice Notify staking contract that it has more reward to account for.
-    /// @dev A rewardsDuration of 1 dictates instant release of rewards
-    /// @param rewardToken Address of the reward token.
-    /// @param reward Amount of reward tokens to add.
-    function _notifyRewardAmount(
-        address rewardToken,
-        uint256 reward
-    ) internal virtual override updateReward(address(0)) {
-        // Use super and return if rewardsDuration is not 1
-        if (rewardData[rewardToken].rewardsDuration != 1) {
-            super._notifyRewardAmount(rewardToken, reward);
-            return;
-        }
-        rewardData[rewardToken].rewardRate = 0;
-        rewardData[rewardToken].lastUpdateTime = block.timestamp;
-        rewardData[rewardToken].periodFinish = block.timestamp;
-
-        uint256 _totalSupply = TokenizedStrategy.totalSupply();
-
-        // This should never happen
-        if (_totalSupply == 0) {
-            address treasury = bearnVoter.treasury();
-            IERC20(rewardToken).safeTransfer(treasury, reward);
-            emit SentToTreasury(rewardToken, reward);
-            return;
-        }
-
-        // Instantly release rewards by modifying rewardPerTokenStored
-        rewardData[rewardToken].rewardPerTokenStored =
-            rewardData[rewardToken].rewardPerTokenStored +
-            (reward * 1e18) /
-            _totalSupply;
-
-        emit RewardAdded(rewardToken, reward);
-    }
-
-    /// @notice Reward paid out per whole token.
-    function rewardPerToken(
-        address rewardToken
-    ) public view virtual override returns (uint256) {
-        if (rewardData[rewardToken].rewardsDuration != 1) {
-            return super.rewardPerToken(rewardToken);
-        }
-        if (TokenizedStrategy.isShutdown()) {
-            return 0;
-        }
-
-        return rewardData[rewardToken].rewardPerTokenStored;
     }
 }
