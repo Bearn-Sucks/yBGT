@@ -22,6 +22,7 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
 
     uint256 public immutable BASIS;
     BearnVaultFactory public bearnVaultFactory;
+    address public bearnAuctionFactory;
     uint256 public wrapFee;
     uint256 public redeemFee;
     uint256 public vaultWrapFee;
@@ -55,11 +56,13 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
         emit RedeemPaused(_redeemPaused);
     }
 
-    function setBearnVaultFactory(
-        address _bearnVaultFactory
+    function setBearnFactories(
+        address _bearnVaultFactory,
+        address _bearnAuctionFactory
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(address(bearnVaultFactory) == address(0));
         bearnVaultFactory = BearnVaultFactory(_bearnVaultFactory);
+        bearnAuctionFactory = _bearnAuctionFactory;
     }
 
     function version() external pure returns (string memory) {
@@ -73,7 +76,8 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
         address to,
         uint256 inputAmount
     ) public view returns (uint256 outputAmount, uint256 fee) {
-        uint256 _wrapFee = bearnVaultFactory.isBearnVault(to)
+        uint256 _wrapFee = bearnVaultFactory.isBearnVault(to) ||
+            to == bearnAuctionFactory
             ? vaultWrapFee
             : wrapFee;
         fee = (inputAmount * _wrapFee) / BASIS;
@@ -100,7 +104,8 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
     ) public view returns (uint256 outputAmount, uint256 fee) {
         require(!redeemPaused, RedeemIsPaused());
 
-        uint256 _redeemFee = bearnVaultFactory.isBearnVault(to)
+        uint256 _redeemFee = bearnVaultFactory.isBearnVault(to) ||
+            to == bearnAuctionFactory
             ? vaultRedeemFee
             : redeemFee;
 
