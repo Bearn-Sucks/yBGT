@@ -13,14 +13,6 @@ import {IBearnVoter} from "src/interfaces/IBearnVoter.sol";
 import {IBearnBGT} from "src/interfaces/IBearnBGT.sol";
 
 abstract contract BearnVault is TokenizedStaker {
-    // @TODO: fork TokenizedStrategy to replace hardcoded address for getting protocol fees
-
-    // @TODO: check report() can be left without authorization
-    // keeper is currently pointed to the permissionless keeper
-    // ideally _harvetAndReport() will only be able to claim
-    // yBGT and start auctions if auctions are enabled (and
-    // will revert if auctions are disabled)
-
     using SafeERC20 for IERC20;
 
     IBearnVaultFactory public immutable bearnVaultFactory;
