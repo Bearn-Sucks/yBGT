@@ -7,6 +7,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Auction} from "@yearn/tokenized-strategy-periphery/Auctions/Auction.sol";
+import {AuctionFactory} from "@yearn/tokenized-strategy-periphery/Auctions/AuctionFactory.sol";
 
 import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
 import {IBearnVaultManager} from "src/interfaces/IBearnVaultManager.sol";
@@ -70,6 +71,8 @@ contract BearnAuctionFactory {
     address public immutable wbera;
     address public immutable yBGT;
     IBearnVaultFactory public immutable bearnVaultFactory;
+    AuctionFactory public constant yearnAuctionFactory =
+        AuctionFactory(0xCfA510188884F199fcC6e750764FAAbE6e56ec40); // Yearn's Auction Factory on Bera
 
     /* ========== STATES ========== */
 
@@ -131,10 +134,16 @@ contract BearnAuctionFactory {
     ) internal {
         require(wantToAuction[want] == address(0), AuctionExists());
 
-        Auction _newAuction = new Auction();
-
         // Initialize with address(this) as governance first so we can enable markets
-        _newAuction.initialize(want, receiver, address(this), 1 days, 1e6);
+        Auction _newAuction = Auction(
+            yearnAuctionFactory.createNewAuction(
+                want,
+                receiver,
+                address(this),
+                1 days,
+                1e6
+            )
+        );
 
         // Enable markets
         if (want != wbera) {
