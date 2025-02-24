@@ -33,6 +33,7 @@ abstract contract BearnBaseHelper is BeraHelper {
     address internal user = makeAddr("user");
     address internal user2 = makeAddr("user2");
     address internal treasury = makeAddr("treasury");
+    address internal timelock = makeAddr("timelock");
 
     Keeper internal keeper;
 
@@ -102,7 +103,8 @@ abstract contract BearnBaseHelper is BeraHelper {
             address(bgt),
             address(wbera),
             address(governance),
-            address(treasury)
+            address(treasury),
+            address(timelock)
         );
 
         // Deploy Bearn Voter Manager
@@ -114,7 +116,7 @@ abstract contract BearnBaseHelper is BeraHelper {
         );
 
         // Deploy Fee Module
-        feeModule = new BearnBGTFeeModule(0, 0, false);
+        feeModule = new BearnBGTFeeModule(0, 0, 0, 0, false);
 
         // Deploy yBGT
         yBGT = new BearnBGT(
@@ -144,6 +146,9 @@ abstract contract BearnBaseHelper is BeraHelper {
             address(yBGT),
             address(bearnVaultFactory)
         );
+
+        // Initialize Fee Module
+        feeModule.setBearnVaultFactory(address(bearnVaultFactory));
 
         // Register Bearn Auction Factory
         bearnVaultFactory.setAuctionFactory(address(bearnAuctionFactory));

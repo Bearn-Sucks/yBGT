@@ -21,7 +21,7 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
     event RedeemPaused(bool);
 
     uint256 public immutable BASIS;
-    BearnVaultFactory public immutable bearnVaultFactory;
+    BearnVaultFactory public bearnVaultFactory;
     uint256 public wrapFee;
     uint256 public redeemFee;
     uint256 public vaultWrapFee;
@@ -29,7 +29,6 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
     bool public redeemPaused;
 
     constructor(
-        address _bearnVaultFactory,
         uint256 _wrapFee,
         uint256 _redeemFee,
         uint256 _vaultWrapFee,
@@ -37,7 +36,6 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
         bool _redeemPaused
     ) {
         BASIS = 10_000;
-        bearnVaultFactory = BearnVaultFactory(_bearnVaultFactory);
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
@@ -55,6 +53,13 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
 
         redeemPaused = _redeemPaused;
         emit RedeemPaused(_redeemPaused);
+    }
+
+    function setBearnVaultFactory(
+        address _bearnVaultFactory
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(address(bearnVaultFactory) == address(0));
+        bearnVaultFactory = BearnVaultFactory(_bearnVaultFactory);
     }
 
     function version() external pure returns (string memory) {
