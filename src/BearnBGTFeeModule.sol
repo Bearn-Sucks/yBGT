@@ -2,6 +2,7 @@
 pragma solidity >=0.8.18;
 
 import {AccessControlEnumerable} from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
+import {BearnVaultFactory} from "src/BearnVaultFactory.sol";
 
 /// @title yBGT Fee Module
 /// @author Bearn.sucks
@@ -15,15 +16,29 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
 
     event NewWrapFee(uint256 newWrapFee);
     event NewRedeemFee(uint256 newRedeemFee);
+    event NewVaultWrapFee(uint256 newWrapFee);
+    event NewVaultRedeemFee(uint256 newRedeemFee);
     event RedeemPaused(bool);
 
     uint256 public immutable BASIS;
+    BearnVaultFactory public immutable bearnVaultFactory;
     uint256 public wrapFee;
     uint256 public redeemFee;
+    uint256 public vaultWrapFee;
+    uint256 public vaultRedeemFee;
     bool public redeemPaused;
 
-    constructor(uint256 _wrapFee, uint256 _redeemFee, bool _redeemPaused) {
+    constructor(
+        address _bearnVaultFactory,
+        uint256 _wrapFee,
+        uint256 _redeemFee,
+        uint256 _vaultWrapFee,
+        uint256 _vaultRedeemFee,
+        bool _redeemPaused
+    ) {
         BASIS = 10_000;
+        bearnVaultFactory = BearnVaultFactory(_bearnVaultFactory);
+
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         wrapFee = _wrapFee;
@@ -31,6 +46,12 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
 
         redeemFee = _redeemFee;
         emit NewRedeemFee(_redeemFee);
+
+        vaultWrapFee = _vaultWrapFee;
+        emit NewVaultWrapFee(_vaultWrapFee);
+
+        vaultRedeemFee = _vaultRedeemFee;
+        emit NewVaultRedeemFee(_vaultRedeemFee);
 
         redeemPaused = _redeemPaused;
         emit RedeemPaused(_redeemPaused);
@@ -47,7 +68,10 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
         address to,
         uint256 inputAmount
     ) public view returns (uint256 outputAmount, uint256 fee) {
-        fee = (inputAmount * wrapFee) / BASIS;
+        uint256 _wrapFee = bearnVaultFactory.isBearnVault(to)
+            ? vaultWrapFee
+            : wrapFee;
+        fee = (inputAmount * _wrapFee) / BASIS;
         return (inputAmount - fee, fee);
     }
 
@@ -70,7 +94,12 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
         uint256 inputAmount
     ) public view returns (uint256 outputAmount, uint256 fee) {
         require(!redeemPaused, RedeemIsPaused());
-        fee = (inputAmount * redeemFee) / BASIS;
+
+        uint256 _redeemFee = bearnVaultFactory.isBearnVault(to)
+            ? vaultRedeemFee
+            : redeemFee;
+
+        fee = (inputAmount * _redeemFee) / BASIS;
         return (inputAmount - fee, fee);
     }
 
@@ -101,5 +130,23 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
 
         redeemFee = newRedeemFee;
         emit NewRedeemFee(newRedeemFee);
+    }
+
+    function setVaultWrapFee(
+        uint256 newWrapFee
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newWrapFee < BASIS, InvalidFee());
+
+        vaultWrapFee = newWrapFee;
+        emit NewVaultWrapFee(newWrapFee);
+    }
+
+    function setVaultRedeemFee(
+        uint256 newRedeemFee
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newRedeemFee < BASIS, InvalidFee());
+
+        vaultRedeemFee = newRedeemFee;
+        emit NewVaultRedeemFee(newRedeemFee);
     }
 }
