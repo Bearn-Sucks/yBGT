@@ -4,44 +4,46 @@ pragma solidity >=0.8.18;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import {AccessControlEnumerable} from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
+
+import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
+
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
 import {IRewardVaultFactory as IBeraVaultFactory} from "@berachain/contracts/pol/interfaces/IRewardVaultFactory.sol";
 import {IBearnBGTFeeModule} from "src/interfaces/IBearnBGTFeeModule.sol";
 import {IBearnVoter} from "src/interfaces/IBearnVoter.sol";
 
-contract BearnBGT is ERC20, ERC20Permit, AccessControlEnumerable {
+contract BearnBGT is ERC20, ERC20Permit, Authorized {
     error NoBeraVault();
     error NoBGT();
 
     event NewFeeModule(address newFeeModule);
-    event NewFeeRecipient(address newFeeRecipient);
-
-    bytes32 public constant MANAGEMENT_ROLE = keccak256("MANAGEMENT_ROLE");
+    event NewTreasury(address newFeeRecipient);
 
     IBeraVaultFactory public immutable beraVaultFactory;
     IBearnVoter public immutable bearnVoter;
 
     IBearnBGTFeeModule public feeModule;
-    address public feeRecipient;
+    address public treasury;
 
     constructor(
-        address defaultAdmin,
+        address _authorizer,
         address _beraVaultFactory,
         address _bearnVoter,
-        address _feeModule
-    ) ERC20("Bearn BGT", "yBGT") ERC20Permit("Bearn BGT") {
-        _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
-        _grantRole(MANAGEMENT_ROLE, defaultAdmin);
-
+        address _feeModule,
+        address _treasury
+    )
+        ERC20("Bearn BGT", "yBGT")
+        ERC20Permit("Bearn BGT")
+        Authorized(_authorizer)
+    {
         beraVaultFactory = IBeraVaultFactory(_beraVaultFactory);
         bearnVoter = IBearnVoter(_bearnVoter);
 
         feeModule = IBearnBGTFeeModule(_feeModule);
         emit NewFeeModule(_feeModule);
 
-        feeRecipient = defaultAdmin;
-        emit NewFeeRecipient(defaultAdmin);
+        treasury = _treasury;
+        emit NewTreasury(_treasury);
     }
 
     /// @notice
@@ -73,7 +75,7 @@ contract BearnBGT is ERC20, ERC20Permit, AccessControlEnumerable {
             _mint(msg.sender, outputAmount);
         }
         if (feeAmount > 0) {
-            _mint(feeRecipient, outputAmount);
+            _mint(treasury, outputAmount);
         }
 
         return outputAmount;
@@ -94,7 +96,7 @@ contract BearnBGT is ERC20, ERC20Permit, AccessControlEnumerable {
 
         // transfer fees to fee recipient
         if (fee > 0) {
-            _transfer(msg.sender, feeRecipient, fee);
+            _transfer(msg.sender, treasury, fee);
         }
 
         return outputAmount;
@@ -120,7 +122,7 @@ contract BearnBGT is ERC20, ERC20Permit, AccessControlEnumerable {
 
     function setFeeModule(
         address newFeeModule
-    ) external onlyRole(MANAGEMENT_ROLE) {
+    ) external isAuthorized(MANAGER_ROLE) {
         feeModule = IBearnBGTFeeModule(newFeeModule);
 
         emit NewFeeModule(newFeeModule);
@@ -128,9 +130,9 @@ contract BearnBGT is ERC20, ERC20Permit, AccessControlEnumerable {
 
     function setFeeRecipient(
         address newFeeRecipient
-    ) external onlyRole(MANAGEMENT_ROLE) {
-        feeRecipient = newFeeRecipient;
+    ) external isAuthorized(MANAGER_ROLE) {
+        treasury = newFeeRecipient;
 
-        emit NewFeeRecipient(newFeeRecipient);
+        emit NewTreasury(newFeeRecipient);
     }
 }

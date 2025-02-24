@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity >=0.8.18;
 
-import {AccessControlEnumerable} from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
+import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
 import {BearnVaultFactory} from "src/BearnVaultFactory.sol";
 
 /// @title yBGT Fee Module
@@ -10,7 +10,7 @@ import {BearnVaultFactory} from "src/BearnVaultFactory.sol";
 ///    Contract that calculates how much BearnBGT to mint/redeem to the user.
 ///    Currently it just uses a simple wrap/redeem fee percentage.
 ///    The module is swappable so there can be a dynamic fee module in the future.
-contract BearnBGTFeeModule is AccessControlEnumerable {
+contract BearnBGTFeeModule is Authorized {
     error RedeemIsPaused();
     error InvalidFee();
 
@@ -30,15 +30,14 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
     bool public redeemPaused;
 
     constructor(
+        address _authorizer,
         uint256 _wrapFee,
         uint256 _redeemFee,
         uint256 _vaultWrapFee,
         uint256 _vaultRedeemFee,
         bool _redeemPaused
-    ) {
+    ) Authorized(_authorizer) {
         BASIS = 10_000;
-
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         wrapFee = _wrapFee;
         emit NewWrapFee(_wrapFee);
@@ -59,7 +58,7 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
     function setBearnFactories(
         address _bearnVaultFactory,
         address _bearnAuctionFactory
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external isAuthorized(MANAGER_ROLE) {
         require(address(bearnVaultFactory) == address(0));
         bearnVaultFactory = BearnVaultFactory(_bearnVaultFactory);
         bearnAuctionFactory = _bearnAuctionFactory;
@@ -126,7 +125,7 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
 
     function setWrapFee(
         uint256 newWrapFee
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external isAuthorized(MANAGER_ROLE) {
         require(newWrapFee < BASIS, InvalidFee());
 
         wrapFee = newWrapFee;
@@ -135,7 +134,7 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
 
     function setRedeemFee(
         uint256 newRedeemFee
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external isAuthorized(MANAGER_ROLE) {
         require(newRedeemFee < BASIS, InvalidFee());
 
         redeemFee = newRedeemFee;
@@ -144,7 +143,7 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
 
     function setVaultWrapFee(
         uint256 newWrapFee
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external isAuthorized(MANAGER_ROLE) {
         require(newWrapFee < BASIS, InvalidFee());
 
         vaultWrapFee = newWrapFee;
@@ -153,7 +152,7 @@ contract BearnBGTFeeModule is AccessControlEnumerable {
 
     function setVaultRedeemFee(
         uint256 newRedeemFee
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external isAuthorized(MANAGER_ROLE) {
         require(newRedeemFee < BASIS, InvalidFee());
 
         vaultRedeemFee = newRedeemFee;

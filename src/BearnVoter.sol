@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity >=0.8.18;
 
-import {AccessControlEnumerable} from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
-
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 import {IBGT} from "@berachain/contracts/pol/BGT.sol";
 import {WBERA} from "@berachain/contracts/WBERA.sol";
+
+import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
 
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
 import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
@@ -17,74 +17,67 @@ import {BearnExecutor} from "src/bases/BearnExecutor.sol";
 /// @author Bearn.sucks
 /// @notice
 ///   Contract that holds the BGT backing yBGT and also votes with those BGT.
-contract BearnVoter is AccessControlEnumerable, BearnExecutor {
+contract BearnVoter is Authorized, BearnExecutor {
     /* ========== ERRORS ========== */
 
-    error NotTimelock();
+    error NotVoterManager();
 
     /* ========== EVENTS ========== */
 
     event NewTreasury(address indexed newTreasury);
-    event NewTimelock(address indexed newTimelock);
-    event NewManager(address indexed newManager);
+    event NewVoterManager(address indexed newVoterManager);
 
-    /// @notice In charge of voting
-    bytes32 public immutable MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    /// @notice Timelock
+    bytes32 public immutable TIMELOCK_ROLE = keccak256("TIMELOCK_ROLE");
+
     /// @notice Redeem module
     bytes32 public immutable REDEEMER_ROLE = keccak256("REDEEMER_ROLE");
 
     IBGT public immutable bgt;
     WBERA public immutable wbera;
     IGovernor public immutable beraGovernance;
-    address public timelock;
+    address public voterManager;
     address public treasury;
 
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
+        address _authorizer,
         address _bgt,
         address _wbera,
         address _beraGovernance,
         address _treasury,
-        address _timelock
-    ) {
+        address _voterManager
+    ) Authorized(_authorizer) {
         bgt = IBGT(_bgt);
         wbera = WBERA(payable(_wbera));
         beraGovernance = IGovernor(_beraGovernance);
         treasury = _treasury;
-        timelock = _timelock;
+        voterManager = _voterManager;
 
         emit NewTreasury(_treasury);
-        emit NewTimelock(_timelock);
 
         /// @dev
         ///     Don't froget to grant the following role pairs after deployment
         ///     REDEEMER_ROLE to yBGT
-        ///     MANAGER_ROLE to BearnVoteManager
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(DEFAULT_ADMIN_ROLE, _timelock);
     }
 
     /* ========== MANAGER ACTIONS ========== */
 
     function setTreasury(
         address _treasury
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external isAuthorized(MANAGER_ROLE) {
         treasury = _treasury;
+
         emit NewTreasury(_treasury);
     }
 
-    function setTimelock(
-        address _timelock
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(msg.sender == timelock, NotTimelock());
+    function setVoterManager(
+        address _voterManager
+    ) external hasRole(TIMELOCK_ROLE) {
+        voterManager = _voterManager;
 
-        _revokeRole(DEFAULT_ADMIN_ROLE, timelock);
-
-        timelock = _timelock;
-
-        _grantRole(DEFAULT_ADMIN_ROLE, _timelock);
-        emit NewTimelock(_timelock);
+        emit NewVoterManager(_voterManager);
     }
 
     /// @notice Makes it so the Manager can vote, propose, boost, drop boost, etc.
@@ -102,33 +95,9 @@ contract BearnVoter is AccessControlEnumerable, BearnExecutor {
         bytes calldata data,
         Operation operation,
         bool allowFailure
-    )
-        public
-        payable
-        onlyRole(MANAGER_ROLE)
-        returns (bool success, bytes memory _returndata)
-    {
+    ) public payable returns (bool success, bytes memory _returndata) {
+        require(msg.sender == voterManager, NotVoterManager());
         return _execute(to, value, data, operation, allowFailure);
-    }
-
-    /// @dev Only Timelock can change the Manager, and only one Manager can exist at a time
-    function _grantRole(
-        bytes32 role,
-        address account
-    ) internal virtual override {
-        if (getRoleMemberCount(MANAGER_ROLE) > 0) {
-            if (role == MANAGER_ROLE) {
-                require(msg.sender == timelock, NotTimelock());
-            }
-
-            address oldManager = getRoleMember(MANAGER_ROLE, 0);
-
-            _revokeRole(MANAGER_ROLE, oldManager);
-
-            emit NewManager(account);
-        }
-
-        super._grantRole(role, account);
     }
 
     /* ========== REDEEMING ========== */
@@ -136,7 +105,7 @@ contract BearnVoter is AccessControlEnumerable, BearnExecutor {
     function redeem(
         address to,
         uint256 amount
-    ) external onlyRole(REDEEMER_ROLE) {
+    ) external hasRole(REDEEMER_ROLE) {
         // wrap BERA to avoid any potential trouble with sending native BERA
         // BERA is warpped to wBERA in the receive() function
         bgt.redeem(address(this), amount);
