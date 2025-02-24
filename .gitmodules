@@ -11,4 +11,6 @@
 [submodule "lib/yearn-tokenized-strategy-periphery"]
 	path = lib/yearn-tokenized-strategy-periphery
 	url = https://github.com/yearn/tokenized-strategy-periphery
-	branch = staker
+[submodule "lib/bearn-governance"]
+	path = lib/bearn-governance
+	url = git@github:Bearn-Sucks/bearn-governance.git
