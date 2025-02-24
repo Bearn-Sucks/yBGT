@@ -41,7 +41,7 @@ contract StakedBearnBGT is TokenizedStaker {
         auction = Auction(
             AuctionFactory(0xCfA510188884F199fcC6e750764FAAbE6e56ec40)
                 .createNewAuction(
-                    _yBGT,
+                    address(yBGT),
                     address(this),
                     address(this),
                     1 days,
@@ -50,11 +50,12 @@ contract StakedBearnBGT is TokenizedStaker {
         );
 
         // Enable honey auctions
-        auction.enable(_honey);
+        auction.enable(address(honey));
 
         // Transfer auction ownership
         auction.transferGovernance(address(bearnVaultManager));
-        bearnVaultManager.registerAuction(address(auction));
+
+        /// @dev don't forget to accept auction's governance on bearnVaultManager
     }
 
     function _deployFunds(uint256 amount) internal override {}

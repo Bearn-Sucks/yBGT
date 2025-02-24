@@ -6,6 +6,7 @@ import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IBGT} from "@berachain/contracts/pol/BGT.sol";
 import {WBERA} from "@berachain/contracts/WBERA.sol";
 
+import {BearnAuthorizer} from "@bearn/governance/contracts/BearnAuthorizer.sol";
 import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
 
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
@@ -46,14 +47,13 @@ contract BearnVoter is Authorized, BearnExecutor {
         address _bgt,
         address _wbera,
         address _beraGovernance,
-        address _treasury,
-        address _voterManager
+        address _treasury
     ) Authorized(_authorizer) {
         bgt = IBGT(_bgt);
         wbera = WBERA(payable(_wbera));
         beraGovernance = IGovernor(_beraGovernance);
         treasury = _treasury;
-        voterManager = _voterManager;
+        voterManager = msg.sender; // temporarily, because VoterManager's constructor requires BearnVoter
 
         emit NewTreasury(_treasury);
 
@@ -72,9 +72,12 @@ contract BearnVoter is Authorized, BearnExecutor {
         emit NewTreasury(_treasury);
     }
 
-    function setVoterManager(
-        address _voterManager
-    ) external hasRole(TIMELOCK_ROLE) {
+    function setVoterManager(address _voterManager) external {
+        require(
+            msg.sender == voterManager ||
+                BearnAuthorizer(AUTHORIZER).hasRole(TIMELOCK_ROLE, msg.sender),
+            NotVoterManager()
+        );
         voterManager = _voterManager;
 
         emit NewVoterManager(_voterManager);

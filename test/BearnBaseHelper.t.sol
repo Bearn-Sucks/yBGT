@@ -4,7 +4,8 @@ pragma solidity 0.8.27;
 import "forge-std/Test.sol";
 
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
 // import {RewardVaultTest as BeraRewardVaultTest} from "@berachain/test/pol/RewardVault.t.sol";
 import {POLTest as BeraHelper} from "@berachain/test/pol/POL.t.sol";
@@ -12,6 +13,9 @@ import {POLTest as BeraHelper} from "@berachain/test/pol/POL.t.sol";
 import {IBaseAuctioneer} from "@yearn/tokenized-strategy-periphery/Bases/Auctioneer/IBaseAuctioneer.sol";
 
 import {Keeper} from "src/mock/MockKeeper.sol";
+
+import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
+import {BearnAuthorizer} from "@bearn/governance/contracts/BearnAuthorizer.sol";
 
 import {BearnBGT} from "src/BearnBGT.sol";
 import {BearnVoter} from "src/BearnVoter.sol";
@@ -21,6 +25,7 @@ import {BearnAuctionFactory} from "src/BearnAuctionFactory.sol";
 import {BearnVault} from "src/BearnVault.sol";
 import {BearnVaultManager} from "src/BearnVaultManager.sol";
 import {BearnCompoundingVault} from "src/BearnCompoundingVault.sol";
+import {StakedBearnBGT} from "src/StakedBearnBGT.sol";
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
 import {IBearnCompoundingVault} from "src/interfaces/IBearnCompoundingVault.sol";
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
@@ -35,9 +40,11 @@ abstract contract BearnBaseHelper is BeraHelper {
     address internal treasury = makeAddr("treasury");
     address internal timelock = makeAddr("timelock");
 
+    MockERC20 internal honey;
+
     Keeper internal keeper;
 
-    ProxyAdmin internal proxyAdmin;
+    BearnAuthorizer internal authorizer;
     BearnVaultManager internal bearnVaultManager;
     IBeraVault internal beraVault;
     BearnBGT internal yBGT;
@@ -49,6 +56,7 @@ abstract contract BearnBaseHelper is BeraHelper {
     IBearnVault internal bearnVault;
     IBearnCompoundingVault internal bearnCompoundingVault;
     IBaseAuctioneer internal bearnCompoundingVaultAuction;
+    StakedBearnBGT internal styBGT;
 
     /// @dev A function invoked before each test case is run.
     function setUp() public virtual override {
@@ -60,6 +68,8 @@ abstract contract BearnBaseHelper is BeraHelper {
         vm.prank(governance);
         beraVault.setRewardsDuration(3);
         deal(address(bgt), address(distributor), 1000 ether);
+        honey = new MockERC20();
+        honey.initialize("HONEY", "HONEY", 18);
 
         vm.startPrank(bearnManager);
         vm.deal(bearnManager, 100 ether);
@@ -85,11 +95,11 @@ abstract contract BearnBaseHelper is BeraHelper {
             "TokenizedStrategy"
         );
 
-        // deployCodeTo(
-        //     "AuctionFactory",
-        //     0xa076c247AfA44f8F006CA7f21A4EF59f7e4dc605
-        // );
-        // vm.label(0xa076c247AfA44f8F006CA7f21A4EF59f7e4dc605, "AuctionFactory");
+        deployCodeTo(
+            "AuctionFactory",
+            0xCfA510188884F199fcC6e750764FAAbE6e56ec40
+        );
+        vm.label(0xa076c247AfA44f8F006CA7f21A4EF59f7e4dc605, "AuctionFactory");
 
         keeper = Keeper(0x52605BbF54845f520a3E94792d019f62407db2f8);
 
@@ -98,37 +108,40 @@ abstract contract BearnBaseHelper is BeraHelper {
 
         // Deploy Bearn contracts
 
+        // Deploy Bearn Authorizer
+        authorizer = new BearnAuthorizer(bearnManager);
+
         // Deploy Bearn Voter
         bearnVoter = new BearnVoter(
+            address(authorizer),
             address(bgt),
             address(wbera),
             address(governance),
-            address(treasury),
-            address(timelock)
-        );
-
-        // Deploy Bearn Voter Manager
-        bearnVoterManager = new BearnVoterManager(
-            address(bgt),
-            address(wbera),
-            address(governance),
-            address(bearnVoter)
+            address(treasury)
         );
 
         // Deploy Fee Module
-        feeModule = new BearnBGTFeeModule(0, 0, 0, 0, false);
+        feeModule = new BearnBGTFeeModule(
+            address(authorizer),
+            0,
+            0,
+            0,
+            0,
+            false
+        );
 
         // Deploy yBGT
         yBGT = new BearnBGT(
-            bearnManager,
+            address(authorizer),
             address(factory),
             address(bearnVoter),
-            address(feeModule)
+            address(feeModule),
+            address(treasury)
         );
 
         // Deploy Bearn Vault Factory
         bearnVaultFactory = new BearnVaultFactory(
-            bearnManager,
+            bearnManager, // temporarily, to be set to bearnVaultManager later
             address(factory),
             address(yBGT),
             0x52605BbF54845f520a3E94792d019f62407db2f8 // yearn permissionless keeper
@@ -136,6 +149,7 @@ abstract contract BearnBaseHelper is BeraHelper {
 
         // Deploy Bearn Vault Manager
         bearnVaultManager = new BearnVaultManager(
+            address(authorizer),
             address(bearnVaultFactory),
             address(bearnVoter)
         );
@@ -147,21 +161,45 @@ abstract contract BearnBaseHelper is BeraHelper {
             address(bearnVaultFactory)
         );
 
-        // Initialize Fee Module
-        feeModule.setBearnVaultFactory(address(bearnVaultFactory));
-
         // Register Bearn Auction Factory
         bearnVaultFactory.setAuctionFactory(address(bearnAuctionFactory));
+
+        // Deploy styBGT
+        styBGT = new StakedBearnBGT(
+            address(bearnVoter),
+            address(bearnVaultManager),
+            address(yBGT),
+            address(honey)
+        );
+        // Accept styBGT Auction's governance
+        bearnVaultManager.registerAuction(address(styBGT.auction()));
+
+        // Deploy Bearn Voter Manager
+        bearnVoterManager = new BearnVoterManager(
+            address(authorizer),
+            address(bgt),
+            address(bgtStaker),
+            address(wbera),
+            address(honey),
+            address(governance),
+            address(bearnVoter),
+            address(styBGT)
+        );
+
+        // Initialize Voter
+        bearnVoter.setVoterManager(address(bearnVoterManager));
+
+        // Initialize Fee Module
+        feeModule.setBearnFactories(
+            address(bearnVaultFactory),
+            address(bearnAuctionFactory)
+        );
 
         // Pass ownership of Vault Factory
         bearnVaultFactory.setVaultManager(address(bearnVaultManager));
 
-        // Grant roles on Voter
-        bearnVoter.grantRole(
-            bearnVoter.MANAGER_ROLE(),
-            address(bearnVoterManager)
-        );
-        bearnVoter.grantRole(bearnVoter.REDEEMER_ROLE(), address(yBGT));
+        // Grant redeemer role to yBGT
+        authorizer.grantRole(bearnVoter.REDEEMER_ROLE(), address(yBGT));
 
         // Create vaults to test with
         (
