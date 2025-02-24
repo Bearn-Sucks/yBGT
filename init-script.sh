@@ -18,4 +18,5 @@ grep -rl --include \*.sol "\"src\/" ./lib/berachain-contracts/ | xargs sed -i "s
 grep -rl --include \*.sol "\"test\/" ./lib/berachain-contracts/ | xargs sed -i "s/\"test\//\"@berachain\/test\//g"
 grep -rl --include \*.sol "0.8.26;" ./lib/berachain-contracts/ | xargs sed -i "s/0.8.26;/0.8.27;/g"
 grep -rl --include \*.sol "openzeppelin\/" ./lib/yearn-tokenized-strategy-periphery/ | xargs sed -i "s/openzeppelin\//openzeppelin-yearn\//g"
+grep -rl --include \*.sol "openzeppelin\/" ./lib/bearn-governance/ | xargs sed -i "s/openzeppelin\//openzeppelin-bearn-governance\//g"
 echo "finished replacing submodule remappings"
