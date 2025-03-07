@@ -51,4 +51,69 @@ contract LocalUIDeployment is DeployScript {
 
         super.setUp();
     }
+
+    function run() public override {
+        DeployedContracts memory deployedContracts = deploy();
+
+        ////////////////////////
+        /// export addresses ///
+        ////////////////////////
+
+        string memory json;
+        json = vm.serializeAddress(
+            "EXPORTS",
+            "authorizer",
+            address(deployedContracts.authorizer)
+        );
+        json = vm.serializeAddress(
+            "EXPORTS",
+            "vaultManager",
+            address(deployedContracts.vaultManager)
+        );
+        json = vm.serializeAddress(
+            "EXPORTS",
+            "vaultFactory",
+            address(deployedContracts.vaultFactory)
+        );
+        json = vm.serializeAddress(
+            "EXPORTS",
+            "voter",
+            address(deployedContracts.voter)
+        );
+        json = vm.serializeAddress(
+            "EXPORTS",
+            "voterManager",
+            address(deployedContracts.voterManager)
+        );
+        json = vm.serializeAddress(
+            "EXPORTS",
+            "auctionFactory",
+            address(deployedContracts.auctionFactory)
+        );
+        json = vm.serializeAddress(
+            "EXPORTS",
+            "yBGT",
+            address(deployedContracts.yBGT)
+        );
+        json = vm.serializeAddress(
+            "EXPORTS",
+            "styBGT",
+            address(deployedContracts.styBGT)
+        );
+        json = vm.serializeAddress(
+            "EXPORTS",
+            "feeModule",
+            address(deployedContracts.feeModule)
+        );
+
+        vm.writeJson(
+            json,
+            string.concat(
+                vm.projectRoot(),
+                "/script/output/localUI/localUI-",
+                vm.toString(block.timestamp),
+                ".json"
+            )
+        );
+    }
 }

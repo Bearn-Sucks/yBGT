@@ -10,6 +10,7 @@ optimizer_runs = 1
 fs_permissions = [
 	{ access = "read", path = "./test" },
 	{ access = "read", path = "./script" },
+	{ access = "read-write", path = "./script/output" },
 ]
 
 # 2025-01-02 (Thursday)
