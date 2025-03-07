@@ -3,8 +3,14 @@ src = "src"
 out = "out"
 libs = ["lib"]
 
+optimizer = true
+optimizer_runs = 1
+
 # needed for Bera tests, they read a .json for validator data
-fs_permissions = [{ access = "read", path = "./test" }]
+fs_permissions = [
+	{ access = "read", path = "./test" },
+	{ access = "read", path = "./script" },
+]
 
 # 2025-01-02 (Thursday)
 block_timestamp = 1735776000

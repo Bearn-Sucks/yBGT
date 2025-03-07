@@ -1,0 +1,155 @@
+// SPDX-License-Identifier: AGPL-3.0
+pragma solidity ^0.8.13;
+
+import {Script, console, stdJson} from "forge-std/Script.sol";
+
+import {BearnAuthorizer} from "@bearn/governance/contracts/BearnAuthorizer.sol";
+
+import {BearnVaultFactory} from "src/BearnVaultFactory.sol";
+import {BearnAuctionFactory} from "src/BearnAuctionFactory.sol";
+import {BearnVaultManager} from "src/BearnVaultManager.sol";
+import {BearnVoter} from "src/BearnVoter.sol";
+import {BearnVoterManager} from "src/BearnVoterManager.sol";
+import {BearnBGT} from "src/BearnBGT.sol";
+import {BearnBGTFeeModule} from "src/BearnBGTFeeModule.sol";
+import {StakedBearnBGT} from "src/StakedBearnBGT.sol";
+
+contract DeployScript is Script {
+    using stdJson for string;
+
+    address msig;
+    address deployer;
+    address treasury;
+
+    address constant bgt = 0x656b95E550C07a9ffe548bd4085c72418Ceb1dba;
+    address constant bgtStaker = 0x44F07Ce5AfeCbCC406e6beFD40cc2998eEb8c7C6;
+    address constant wbera = 0x6969696969696969696969696969696969696969;
+    address constant beraGovernance =
+        0x4f4A5c2194B8e856b7a05B348F6ba3978FB6f6D5;
+    address constant beraVaultFactory =
+        0x94Ad6Ac84f6C6FbA8b8CCbD71d9f4f101def52a8;
+    address constant honey = 0xFCBD14DC51f0A4d49d5E53C2E0950e0bC26d0Dce;
+
+    address constant yearnPermissionlessKeeper =
+        0x52605BbF54845f520a3E94792d019f62407db2f8;
+
+    struct DeployedContracts {
+        BearnAuthorizer authorizer;
+        BearnVaultManager vaultManager;
+        BearnVaultFactory vaultFactory;
+        BearnVoter voter;
+        BearnVoterManager voterManager;
+        BearnAuctionFactory auctionFactory;
+        BearnBGT yBGT;
+        StakedBearnBGT styBGT;
+        BearnBGTFeeModule feeModule;
+    }
+
+    function setUp() public virtual {
+        // Read msig address from configs
+        string memory root = vm.projectRoot();
+        string memory configs = vm.readFile(
+            string.concat(root, "/script/configs/bearnManagementAddresses.json")
+        );
+
+        address[] memory wallets = vm.getWallets();
+        deployer = wallets[0];
+
+        msig = configs.readAddress(".multisig");
+
+        if (msig == address(0)) {
+            msig = deployer;
+            treasury = deployer;
+        } else {
+            treasury = msig;
+        }
+    }
+
+    function run() public {
+        vm.startBroadcast();
+
+        DeployedContracts memory deployedContracts;
+
+        ////////////////////////
+        /// Deploy contracts ///
+        ////////////////////////
+
+        deployedContracts.authorizer = new BearnAuthorizer(deployer);
+
+        deployedContracts.voter = new BearnVoter(
+            address(deployedContracts.authorizer),
+            bgt,
+            wbera,
+            beraGovernance,
+            treasury
+        );
+
+        deployedContracts.feeModule = new BearnBGTFeeModule(
+            address(deployedContracts.authorizer),
+            0,
+            0,
+            0,
+            0,
+            false
+        );
+
+        deployedContracts.yBGT = new BearnBGT(
+            address(deployedContracts.authorizer),
+            beraVaultFactory,
+            address(deployedContracts.voter),
+            address(deployedContracts.feeModule),
+            treasury
+        );
+
+        deployedContracts.vaultFactory = new BearnVaultFactory(
+            address(deployedContracts.authorizer),
+            beraVaultFactory,
+            address(deployedContracts.yBGT),
+            yearnPermissionlessKeeper
+        );
+
+        deployedContracts.vaultManager = new BearnVaultManager(
+            address(deployedContracts.authorizer),
+            address(deployedContracts.vaultFactory),
+            address(deployedContracts.voter)
+        );
+
+        deployedContracts.styBGT = new StakedBearnBGT(
+            address(deployedContracts.voter),
+            address(deployedContracts.vaultManager),
+            address(deployedContracts.yBGT),
+            honey
+        );
+
+        deployedContracts.voterManager = new BearnVoterManager(
+            address(deployedContracts.authorizer),
+            bgt,
+            bgtStaker,
+            wbera,
+            honey,
+            beraGovernance,
+            address(deployedContracts.voter),
+            address(deployedContracts.styBGT)
+        );
+
+        deployedContracts.auctionFactory = new BearnAuctionFactory(
+            wbera,
+            address(deployedContracts.yBGT),
+            address(deployedContracts.vaultFactory)
+        );
+
+        ////////////////////////////
+        /// Set up Vault Factory ///
+        ////////////////////////////
+
+        deployedContracts.vaultFactory.setVaultManager(
+            address(deployedContracts.vaultManager)
+        );
+
+        deployedContracts.vaultFactory.setAuctionFactory(
+            address(deployedContracts.auctionFactory)
+        );
+
+        vm.stopBroadcast();
+    }
+}
