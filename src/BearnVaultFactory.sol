@@ -3,9 +3,14 @@ pragma solidity >=0.8.18;
 
 import {IRewardVaultFactory as IBeraVaultFactory} from "@berachain/contracts/pol/interfaces/IRewardVaultFactory.sol";
 
+import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
+
 import {BearnVault} from "src/BearnVault.sol";
 import {BearnCompoundingVault} from "src/BearnCompoundingVault.sol";
 import {BearnBGTEarnerVault} from "src/BearnBGTEarnerVault.sol";
+
+import {BearnCompoundingVaultDeployer} from "src/libraries/BearnCompoundingVaultDeployer.sol";
+import {BearnBGTEarnerVaultDeployer} from "src/libraries/BearnBGTEarnerVaultDeployer.sol";
 
 import {IBearnVaultManager} from "src/interfaces/IBearnVaultManager.sol";
 import {IBearnAuctionFactory} from "src/interfaces/IBearnAuctionFactory.sol";
@@ -14,7 +19,7 @@ import {IBearnCompoundingVault} from "src/interfaces/IBearnCompoundingVault.sol"
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract BearnVaultFactory {
+contract BearnVaultFactory is Authorized {
     /* ========== ERRORS ========== */
 
     error NotInitialized();
@@ -30,17 +35,6 @@ contract BearnVaultFactory {
         address compoundingVault,
         address yBGTVault
     );
-
-    /* ========== MODIFIERS ========== */
-
-    modifier onlyManager() {
-        _onlyManager();
-        _;
-    }
-
-    function _onlyManager() internal view {
-        require(msg.sender == address(bearnVaultManager), NotVaultManager());
-    }
 
     /* ========== IMMUTABLES ========== */
 
@@ -61,12 +55,11 @@ contract BearnVaultFactory {
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
-        address _bearnVaultManager,
+        address _authorizer,
         address _beraVaultFactory,
         address _yBGT,
         address _keeper
-    ) {
-        bearnVaultManager = IBearnVaultManager(_bearnVaultManager);
+    ) Authorized(_authorizer) {
         beraVaultFactory = IBeraVaultFactory(_beraVaultFactory);
         yBGT = ERC20(_yBGT);
         keeper = _keeper;
@@ -74,7 +67,7 @@ contract BearnVaultFactory {
 
     function setVaultManager(
         address _newBearnVaultManager
-    ) external onlyManager {
+    ) external isAuthorized(MANAGER_ROLE) {
         if (address(bearnVaultManager) != _newBearnVaultManager) {
             bearnVaultManager = IBearnVaultManager(_newBearnVaultManager);
 
@@ -84,7 +77,7 @@ contract BearnVaultFactory {
 
     function setAuctionFactory(
         address _newAuctionFactory
-    ) external onlyManager {
+    ) external isAuthorized(MANAGER_ROLE) {
         if (address(bearnAuctionFactory) != _newAuctionFactory) {
             bearnAuctionFactory = IBearnAuctionFactory(_newAuctionFactory);
 
@@ -95,7 +88,7 @@ contract BearnVaultFactory {
     function createVaults(
         address stakingToken
     ) external returns (address compoundingVault, address yBGTVault) {
-        require(address(yBGT) != address(0), NotInitialized());
+        require(address(bearnVaultManager) != address(0), NotInitialized());
         require(address(bearnAuctionFactory) != address(0), NotInitialized());
 
         // Check if BeraVault exists
@@ -103,29 +96,15 @@ contract BearnVaultFactory {
         require(beraVault != address(0), NoBeraVault());
 
         // Create the vaults
-        compoundingVault = address(
-            new BearnCompoundingVault(
-                string.concat(
-                    "Bearn ",
-                    ERC20(stakingToken).symbol(),
-                    " Compounding Vault"
-                ),
-                stakingToken,
-                beraVault,
-                address(yBGT)
-            )
+        compoundingVault = BearnCompoundingVaultDeployer.deployVault(
+            stakingToken,
+            beraVault,
+            address(yBGT)
         );
-        yBGTVault = address(
-            new BearnBGTEarnerVault(
-                string.concat(
-                    "Bearn ",
-                    ERC20(stakingToken).symbol(),
-                    " yBGT Vault"
-                ),
-                stakingToken,
-                beraVault,
-                address(yBGT)
-            )
+        yBGTVault = BearnBGTEarnerVaultDeployer.deployVault(
+            stakingToken,
+            beraVault,
+            address(yBGT)
         );
 
         // Deploy Auction
