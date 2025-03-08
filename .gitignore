@@ -14,3 +14,8 @@ docs/
 .env
 
 /node_modules
+
+# Hardhat
+/artifacts
+/cache_hardhat
+/typechain-types
