@@ -16,5 +16,20 @@ fs_permissions = [
 # 2025-01-02 (Thursday)
 block_timestamp = 1735776000
 
+remappings = [
+	"@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+	"@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+	"@openzeppelin-bera/contracts/=lib/berachain-contracts/node_modules/@openzeppelin/contracts/",
+	"@openzeppelin-bera/contracts-upgradeable/=lib/berachain-contracts/node_modules/@openzeppelin/contracts-upgradeable/",
+	"@openzeppelin-yearn/contracts/=lib/yearn-tokenized-strategy-periphery/lib/openzeppelin-contracts/contracts/",
+	"@openzeppelin-bearn-governance/contracts/=lib/bearn-governance/lib/openzeppelin-contracts/contracts/",
+	"forge-std/=lib/forge-std/src/",
+	"@yearn/tokenized-strategy-periphery/=lib/yearn-tokenized-strategy-periphery/src/",
+	"@yearn/tokenized-strategy/=lib/yearn-tokenized-strategy-periphery/lib/tokenized-strategy/src/",
+	"@berachain/contracts/=lib/berachain-contracts/src/",
+	"@berachain/test/=lib/berachain-contracts/test/",
+	"solady/=lib/berachain-contracts/lib/solady/",
+	"@bearn/governance/contracts=lib/bearn-governance/src",
+]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

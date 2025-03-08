@@ -204,16 +204,35 @@ contract DeployScript is Script {
             address(deployedContracts.vaultFactory)
         );
 
-        ////////////////////////////
-        /// Set up Vault Factory ///
-        ////////////////////////////
+        // Initialize Voter
+        deployedContracts.voter.setVoterManager(
+            address(deployedContracts.voterManager)
+        );
 
+        // Set up Vault Factory
         deployedContracts.vaultFactory.setVaultManager(
             address(deployedContracts.vaultManager)
         );
 
         deployedContracts.vaultFactory.setAuctionFactory(
             address(deployedContracts.auctionFactory)
+        );
+
+        // Set Up Fee Module
+        deployedContracts.feeModule.setBearnFactories(
+            address(deployedContracts.vaultFactory),
+            address(deployedContracts.auctionFactory)
+        );
+
+        // Grant redeemer role to yBGT
+        deployedContracts.authorizer.grantRole(
+            deployedContracts.voter.REDEEMER_ROLE(),
+            address(deployedContracts.yBGT)
+        );
+
+        // Accept styBGT Auction's governance
+        deployedContracts.vaultManager.registerAuction(
+            address(deployedContracts.styBGT.auction())
         );
 
         vm.stopBroadcast();

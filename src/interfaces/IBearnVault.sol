@@ -6,5 +6,7 @@ import {ITokenizedStaker} from "@yearn/tokenized-strategy-periphery/Bases/Staker
 interface IBearnVault is ITokenizedStaker {
     function beraVault() external view returns (address);
 
+    function stakingAsset() external view returns (address);
+
     function bearnVoter() external view returns (address);
 }

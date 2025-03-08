@@ -6,6 +6,7 @@ interface IBearnVaultFactory {
 
     error NotInitialized();
     error NoBeraVault();
+    error AlreadyExists();
 
     /* ========== EVENTS ========== */
 
@@ -24,6 +25,18 @@ interface IBearnVaultFactory {
     function bearnAuctionFactory() external view returns (address);
 
     function beraVaultFactory() external view returns (address);
+
+    function getAllCompoundingVaultsLength() external view returns (uint256);
+
+    function getCompoundingVault(uint256 index) external view returns (address);
+
+    function getAllCompoundingVaults() external view returns (address[] memory);
+
+    function getAllBgtEarnerVaultsLength() external view returns (uint256);
+
+    function getBgtEarnerVault(uint256 index) external view returns (address);
+
+    function getAllBgtEarnerVaults() external view returns (address[] memory);
 
     function stakingToCompoundingVaults(
         address stakingToken

@@ -40,6 +40,10 @@ abstract contract BearnVault is TokenizedStaker {
         _initialize();
     }
 
+    function stakingAsset() external view returns (address) {
+        return address(asset);
+    }
+
     /// @notice Overrideable initialization since this part will be different for yBGT and Compounding Vaults
     function _initialize() internal virtual {}
 

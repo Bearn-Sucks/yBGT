@@ -141,7 +141,7 @@ abstract contract BearnBaseHelper is BeraHelper {
 
         // Deploy Bearn Vault Factory
         bearnVaultFactory = new BearnVaultFactory(
-            bearnManager, // temporarily, to be set to bearnVaultManager later
+            address(authorizer),
             address(factory),
             address(yBGT),
             0x52605BbF54845f520a3E94792d019f62407db2f8 // yearn permissionless keeper
