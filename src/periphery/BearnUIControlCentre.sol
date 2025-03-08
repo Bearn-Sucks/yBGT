@@ -32,6 +32,8 @@ contract BearnUIControlCentre is Authorized {
 
     EnumerableSet.AddressSet whitelistedStakes;
 
+    mapping(address stake => string) public nameOverrides;
+
     constructor(address _authorizer) Authorized(_authorizer) {}
 
     function getAllWhitelistedStakes()
@@ -66,7 +68,7 @@ contract BearnUIControlCentre is Authorized {
     function adjustWhitelist(
         address stakingToken,
         bool state
-    ) public isAuthorized(MANAGER_ROLE) {
+    ) external isAuthorized(MANAGER_ROLE) {
         _adjustWhitelist(stakingToken, state);
     }
 
@@ -80,5 +82,12 @@ contract BearnUIControlCentre is Authorized {
                 emit WhitelistChanged(stakingToken, state);
             }
         }
+    }
+
+    function setNameOverride(
+        address stakingToken,
+        string memory nameOverride
+    ) external isAuthorized(MANAGER_ROLE) {
+        nameOverrides[stakingToken] = nameOverride;
     }
 }

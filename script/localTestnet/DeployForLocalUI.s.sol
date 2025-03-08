@@ -20,6 +20,7 @@ import {BearnBGTFeeModule} from "src/BearnBGTFeeModule.sol";
 import {StakedBearnBGT} from "src/StakedBearnBGT.sol";
 
 import {BearnUIControlCentre} from "src/periphery/BearnUIControlCentre.sol";
+import {BearnTips} from "src/periphery/BearnTips.sol";
 
 import {DeployScript} from "script/Deployment.s.sol";
 
@@ -29,6 +30,7 @@ contract LocalUIDeployment is DeployScript, StdCheats {
     using stdJson for string;
 
     address[] internal stakes;
+    string[] internal nameOverrides;
 
     function setUp() public override {
         // reset fork
@@ -71,13 +73,14 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         );
 
         stakes = configs.readAddressArray(".tokens");
+        nameOverrides = configs.readStringArray(".names");
 
         super.setUp();
     }
 
     function run() public override {
         DeployedContracts memory deployedContracts = deploy();
-        deployUIControlCentre(deployedContracts);
+        deployUIContracts(deployedContracts);
         deployVaults(deployedContracts);
 
         ////////////////////////
@@ -142,12 +145,14 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         );
     }
 
-    function deployUIControlCentre(DeployedContracts memory c) public {
+    function deployUIContracts(DeployedContracts memory c) public {
         vm.startBroadcast();
 
         BearnUIControlCentre uiControl = new BearnUIControlCentre(
             address(c.authorizer)
         );
+
+        BearnTips bearnTips = new BearnTips(address(c.authorizer));
 
         bool[] memory states = new bool[](stakes.length);
         for (uint256 i = 0; i < stakes.length; i++) {
@@ -157,6 +162,10 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         // whitelist stakes
         uiControl.adjustWhitelists(stakes, states);
 
+        for (uint256 i = 0; i < stakes.length; i++) {
+            uiControl.setNameOverride(stakes[i], nameOverrides[i]);
+        }
+
         vm.stopBroadcast();
 
         string memory json = vm.serializeAddress(
@@ -164,6 +173,8 @@ contract LocalUIDeployment is DeployScript, StdCheats {
             "uiControlCentre",
             address(uiControl)
         );
+
+        json = vm.serializeAddress("EXPORTS", "bearnTips", address(bearnTips));
 
         vm.writeJson(
             json,

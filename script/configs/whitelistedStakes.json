@@ -5,5 +5,12 @@
     "0x38fdD999Fe8783037dB1bBFE465759e312f2d809",
     "0xDd70A5eF7d8CfE5C5134b5f9874b09Fb5Ce812b4",
     "0xF961a8f6d8c69E7321e78d254ecAfBcc3A637621"
+  ],
+  "names": [
+    "WBERA|HONEY",
+    "BYUSD|HONEY",
+    "WBTC|WBERA",
+    "WETH|WBERA",
+    "USDC.e|HONEY"
   ]
 }
