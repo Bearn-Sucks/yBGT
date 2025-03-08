@@ -18,13 +18,16 @@ import {IBearnVault} from "src/interfaces/IBearnVault.sol";
 import {IBearnCompoundingVault} from "src/interfaces/IBearnCompoundingVault.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 contract BearnVaultFactory is Authorized {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
     /* ========== ERRORS ========== */
 
     error NotInitialized();
     error NoBeraVault();
-    error NotVaultManager();
+    error AlreadyExists();
 
     /* ========== EVENTS ========== */
 
@@ -48,6 +51,8 @@ contract BearnVaultFactory is Authorized {
     IBearnVaultManager public bearnVaultManager;
     IBearnAuctionFactory public bearnAuctionFactory;
 
+    EnumerableSet.AddressSet compoundingVaults;
+    EnumerableSet.AddressSet bgtEarnerVaults;
     mapping(address stakingToken => address) public stakingToCompoundingVaults;
     mapping(address stakingToken => address) public stakingToBGTEarnerVaults;
     mapping(address bearnVaults => bool) public isBearnVault;
@@ -63,6 +68,36 @@ contract BearnVaultFactory is Authorized {
         beraVaultFactory = IBeraVaultFactory(_beraVaultFactory);
         yBGT = ERC20(_yBGT);
         keeper = _keeper;
+    }
+
+    function getAllCompoundingVaultsLength() external view returns (uint256) {
+        return compoundingVaults.length();
+    }
+
+    function getCompoundingVault(
+        uint256 index
+    ) external view returns (address) {
+        return compoundingVaults.at(index);
+    }
+
+    function getAllCompoundingVaults()
+        external
+        view
+        returns (address[] memory)
+    {
+        return compoundingVaults.values();
+    }
+
+    function getAllBgtEarnerVaultsLength() external view returns (uint256) {
+        return bgtEarnerVaults.length();
+    }
+
+    function getBgtEarnerVault(uint256 index) external view returns (address) {
+        return bgtEarnerVaults.at(index);
+    }
+
+    function getAllBgtEarnerVaults() external view returns (address[] memory) {
+        return bgtEarnerVaults.values();
     }
 
     function setVaultManager(
@@ -94,6 +129,12 @@ contract BearnVaultFactory is Authorized {
         // Check if BeraVault exists
         address beraVault = beraVaultFactory.getVault(stakingToken);
         require(beraVault != address(0), NoBeraVault());
+
+        // Check if BearnVault already exists
+        require(
+            stakingToCompoundingVaults[stakingToken] == address(0),
+            AlreadyExists()
+        );
 
         // Create the vaults
         compoundingVault = BearnCompoundingVaultDeployer.deployVault(
@@ -127,6 +168,8 @@ contract BearnVaultFactory is Authorized {
         bearnVaultManager.registerVault(yBGTVault);
 
         // Record the vaults
+        compoundingVaults.add(compoundingVault);
+        bgtEarnerVaults.add(yBGTVault);
         stakingToCompoundingVaults[stakingToken] = compoundingVault;
         stakingToBGTEarnerVaults[stakingToken] = yBGTVault;
         isBearnVault[compoundingVault] = true;
