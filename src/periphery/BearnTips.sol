@@ -28,6 +28,8 @@ import {IBearnCompoundingVault} from "src/interfaces/IBearnCompoundingVault.sol"
 contract BearnTips is Authorized {
     using SafeERC20 for IERC20;
 
+    event Tipped(address indexed tipper, address indexed token, uint256 amount);
+
     address public treasury;
 
     constructor(address _authorizer) Authorized(_authorizer) {
@@ -55,6 +57,8 @@ contract BearnTips is Authorized {
             uint256 tipAmount = (output * (tips)) / (tips + 100);
             output -= tipAmount;
             IBearnVault(bearnVault).transfer(treasury, tipAmount);
+
+            emit Tipped(msg.sender, staking, tipAmount);
         }
 
         IBearnVault(bearnVault).transfer(msg.sender, output);

@@ -2,6 +2,8 @@
 pragma solidity >=0.8.18;
 
 interface IBearnTips {
+    event Tipped(address indexed tipper, address indexed token, uint256 amount);
+
     function treasury() external view returns (address);
 
     function setTreasury(address newTreasury) external;
