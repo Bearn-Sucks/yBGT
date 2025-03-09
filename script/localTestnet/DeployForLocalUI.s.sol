@@ -31,6 +31,8 @@ contract LocalUIDeployment is DeployScript, StdCheats {
 
     address[] internal stakes;
     string[] internal nameOverrides;
+    address[] internal tokensWithOracles;
+    bytes32[] internal oracleIds;
 
     function setUp() public override {
         // reset fork
@@ -74,6 +76,8 @@ contract LocalUIDeployment is DeployScript, StdCheats {
 
         stakes = configs.readAddressArray(".tokens");
         nameOverrides = configs.readStringArray(".names");
+        tokensWithOracles = configs.readAddressArray(".tokensWithOracles");
+        oracleIds = configs.readBytes32Array(".oracleIds");
 
         super.setUp();
     }
@@ -162,8 +166,14 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         // whitelist stakes
         uiControl.adjustWhitelists(stakes, states);
 
+        // override token names
         for (uint256 i = 0; i < stakes.length; i++) {
             uiControl.setNameOverride(stakes[i], nameOverrides[i]);
+        }
+
+        // record oracle IDs
+        for (uint256 i = 0; i < tokensWithOracles.length; i++) {
+            uiControl.setPythOracleId(tokensWithOracles[i], oracleIds[i]);
         }
 
         vm.stopBroadcast();

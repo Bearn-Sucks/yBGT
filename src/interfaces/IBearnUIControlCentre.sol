@@ -2,6 +2,12 @@
 pragma solidity >=0.8.18;
 
 interface IBearnUIControlCentre {
+    function wbera() external view returns (address);
+
+    function bexVault() external view returns (address);
+
+    function pythOracle() external view returns (address);
+
     function getAllWhitelistedStakes() external view returns (address[] memory);
 
     function getAllWhitelistedStakesLength() external view returns (uint256);
@@ -9,6 +15,8 @@ interface IBearnUIControlCentre {
     function getWhitelistedStake(uint256 index) external view returns (address);
 
     function nameOverrides(address stake) external view returns (string memory);
+
+    function pythOracleIds(address stake) external view returns (bytes32);
 
     function adjustWhitelists(
         address[] calldata stakingTokens,
@@ -21,4 +29,12 @@ interface IBearnUIControlCentre {
         address stakingToken,
         string memory nameOverride
     ) external;
+
+    function setPythOracleId(address token, bytes32 oracleId) external;
+
+    function getApr(address bearnVault) external view returns (uint256);
+
+    function getBexLpPrice(address bexPool) external view returns (uint256);
+
+    function getPythPrice(address token) external view returns (uint256);
 }
