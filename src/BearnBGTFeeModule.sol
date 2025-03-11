@@ -158,4 +158,11 @@ contract BearnBGTFeeModule is Authorized {
         vaultRedeemFee = newRedeemFee;
         emit NewVaultRedeemFee(newRedeemFee);
     }
+
+    function setRedeemPaused(
+        bool newState
+    ) external isAuthorized(MANAGER_ROLE) {
+        redeemPaused = newState;
+        emit RedeemPaused(newState);
+    }
 }
