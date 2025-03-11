@@ -155,6 +155,10 @@ contract BearnVaultFactory is Authorized {
             address(bearnVaultManager)
         );
 
+        // Set compound time
+        IBearnVault(compoundingVault).setProfitMaxUnlockTime(2 days);
+        IBearnVault(yBGTVault).setProfitMaxUnlockTime(2 days);
+
         // Transfer keepers
         IBearnVault(compoundingVault).setKeeper(keeper);
         IBearnVault(yBGTVault).setKeeper(keeper);
