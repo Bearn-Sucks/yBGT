@@ -139,7 +139,7 @@ contract BearnAuctionFactory {
                 receiver,
                 address(this),
                 1 days,
-                1e6
+                50_000
             )
         );
 
