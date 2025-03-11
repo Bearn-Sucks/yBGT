@@ -30,6 +30,8 @@ contract BearnVoterManager is Authorized {
     IBearnVoter public immutable bearnVoter;
     address public immutable styBGT;
 
+    bytes32 internal constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+
     /* ========== CONSTRUCTOR AND INITIALIZER ========== */
     constructor(
         address _authorizer,
@@ -101,7 +103,7 @@ contract BearnVoterManager is Authorized {
     function queueBoost(
         bytes calldata pubkey,
         uint128 amount
-    ) external isAuthorized(MANAGER_ROLE) {
+    ) external isAuthorized(OPERATOR_ROLE) {
         bytes memory data = abi.encodeCall(bgt.queueBoost, (pubkey, amount));
 
         bearnVoter.execute(
@@ -116,7 +118,7 @@ contract BearnVoterManager is Authorized {
     function cancelBoost(
         bytes calldata pubkey,
         uint128 amount
-    ) external isAuthorized(MANAGER_ROLE) {
+    ) external isAuthorized(OPERATOR_ROLE) {
         bytes memory data = abi.encodeCall(bgt.cancelBoost, (pubkey, amount));
 
         bearnVoter.execute(
@@ -151,7 +153,7 @@ contract BearnVoterManager is Authorized {
     function queueDropBoost(
         bytes calldata pubkey,
         uint128 amount
-    ) external isAuthorized(MANAGER_ROLE) {
+    ) external isAuthorized(OPERATOR_ROLE) {
         bytes memory data = abi.encodeCall(
             bgt.queueDropBoost,
             (pubkey, amount)
@@ -169,7 +171,7 @@ contract BearnVoterManager is Authorized {
     function cancelDropBoost(
         bytes calldata pubkey,
         uint128 amount
-    ) external isAuthorized(MANAGER_ROLE) {
+    ) external isAuthorized(OPERATOR_ROLE) {
         bytes memory data = abi.encodeCall(
             bgt.cancelDropBoost,
             (pubkey, amount)
@@ -184,7 +186,7 @@ contract BearnVoterManager is Authorized {
         );
     }
 
-    /// @notice Activates already queued boost
+    /// @notice Drops already queued drop boost
     /// @dev Left open to the public since anyone can activate boost that is queued and ready
     /// @param pubkey Public key of the boostee
     function dropBoost(bytes calldata pubkey) external returns (bool) {
