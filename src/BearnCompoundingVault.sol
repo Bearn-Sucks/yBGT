@@ -31,7 +31,9 @@ contract BearnCompoundingVault is BearnVault {
         // This claims the BGT to the Bearn Voter in return for yBGT
         yBGT.wrap(address(asset));
 
-        _kickAuction();
+        if (!Auction(auction()).isActive(address(yBGT))) {
+            _kickAuction();
+        }
 
         // stake any excess asset (from auctions)
         uint256 excessAmount = asset.balanceOf(address(this));
@@ -50,12 +52,15 @@ contract BearnCompoundingVault is BearnVault {
         );
 
         uint256 _balance = IERC20(yBGT).balanceOf(address(this));
-        IERC20(yBGT).safeApprove(address(auctionFactory), _balance);
 
-        auctionFactory.kickAuction(address(asset), _balance);
+        if (_balance > 0) {
+            IERC20(yBGT).safeApprove(address(auctionFactory), _balance);
+
+            auctionFactory.kickAuction(address(asset), _balance);
+        }
     }
 
-    function auction() external view returns (address) {
+    function auction() public view returns (address) {
         IBearnAuctionFactory auctionFactory = IBearnAuctionFactory(
             bearnVaultFactory.bearnAuctionFactory()
         );
