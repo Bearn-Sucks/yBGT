@@ -13,6 +13,7 @@ import {BearnVoterManager} from "src/BearnVoterManager.sol";
 import {BearnBGT} from "src/BearnBGT.sol";
 import {BearnBGTFeeModule} from "src/BearnBGTFeeModule.sol";
 import {StakedBearnBGT} from "src/StakedBearnBGT.sol";
+import {StakedBearnBGTCompounder} from "src/StakedBearnBGTCompounder.sol";
 
 contract DeployScript is Script {
     using stdJson for string;
@@ -42,6 +43,7 @@ contract DeployScript is Script {
         BearnAuctionFactory auctionFactory;
         BearnBGT yBGT;
         StakedBearnBGT styBGT;
+        StakedBearnBGTCompounder styBGTCompounder;
         BearnBGTFeeModule feeModule;
     }
 
@@ -112,6 +114,11 @@ contract DeployScript is Script {
             "EXPORTS",
             "styBGT",
             address(deployedContracts.styBGT)
+        );
+        json = vm.serializeAddress(
+            "EXPORTS",
+            "styBGTCompounder",
+            address(deployedContracts.styBGTCompounder)
         );
         json = vm.serializeAddress(
             "EXPORTS",
@@ -187,6 +194,12 @@ contract DeployScript is Script {
             honey
         );
 
+        deployedContracts.styBGTCompounder = new StakedBearnBGTCompounder(
+            address(deployedContracts.styBGT),
+            address(deployedContracts.vaultManager),
+            honey
+        );
+
         deployedContracts.voterManager = new BearnVoterManager(
             address(deployedContracts.authorizer),
             bgt,
@@ -230,9 +243,9 @@ contract DeployScript is Script {
             address(deployedContracts.yBGT)
         );
 
-        // Accept styBGT Auction's governance
+        // Accept styBGT Compounder's Auction's governance
         deployedContracts.vaultManager.registerAuction(
-            address(deployedContracts.styBGT.auction())
+            address(deployedContracts.styBGTCompounder.auction())
         );
 
         vm.stopBroadcast();

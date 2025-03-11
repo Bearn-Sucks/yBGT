@@ -16,6 +16,9 @@ import {IBearnVoterManager} from "src/interfaces/IBearnVoterManager.sol";
 import {IBearnVaultManager} from "src/interfaces/IBearnVaultManager.sol";
 import {IBearnBGT} from "src/interfaces/IBearnBGT.sol";
 
+/// @title StakedBearnBGT
+/// @author bearn.sucks
+/// @notice A contract for users to stake and get rewards from berachin for their yBGT
 contract StakedBearnBGT is TokenizedStaker {
     using SafeERC20 for IERC20;
 
@@ -23,8 +26,6 @@ contract StakedBearnBGT is TokenizedStaker {
     IBearnBGT public immutable yBGT;
     IERC20 public immutable honey;
     IBearnVaultManager public immutable bearnVaultManager;
-
-    Auction public immutable auction;
 
     constructor(
         address _bearnVoter,
@@ -36,26 +37,6 @@ contract StakedBearnBGT is TokenizedStaker {
         honey = IERC20(_honey);
         bearnVoter = IBearnVoter(_bearnVoter);
         bearnVaultManager = IBearnVaultManager(_bearnVaultManager);
-
-        // Use Yearn AuctionFactory to deploy an Auction
-        auction = Auction(
-            AuctionFactory(0xCfA510188884F199fcC6e750764FAAbE6e56ec40)
-                .createNewAuction(
-                    address(yBGT),
-                    address(this),
-                    address(this),
-                    1 days,
-                    1e6
-                )
-        );
-
-        // Enable honey auctions
-        auction.enable(address(honey));
-
-        // Transfer auction ownership
-        auction.transferGovernance(address(bearnVaultManager));
-
-        /// @dev don't forget to accept auction's governance on bearnVaultManager
     }
 
     function _deployFunds(uint256 amount) internal override {}
@@ -73,20 +54,17 @@ contract StakedBearnBGT is TokenizedStaker {
         );
 
         // Call getReward() to transfer honey to this address
+        uint256 honeyBefore = honey.balanceOf(address(this));
         voterManager.getReward();
+        uint256 rewardAmount = honey.balanceOf(address(this)) - honeyBefore;
 
-        // Kick off an auction if possible;
-        _kickAuction();
+        // Notify rewards if needed
+        if (rewardAmount > 0) {
+            // notify the newly received honey
+            _notifyRewardAmount(address(honey), rewardAmount);
+        }
 
         // report total assets
         _totalAssets = yBGT.balanceOf(address(this));
-    }
-
-    /// @dev Kick an auction
-    function _kickAuction() internal {
-        uint256 _balance = honey.balanceOf(address(this));
-        honey.safeTransfer(address(auction), _balance);
-
-        auction.kick(address(honey));
     }
 }
