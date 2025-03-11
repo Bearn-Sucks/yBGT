@@ -26,6 +26,8 @@ import {BearnVault} from "src/BearnVault.sol";
 import {BearnVaultManager} from "src/BearnVaultManager.sol";
 import {BearnCompoundingVault} from "src/BearnCompoundingVault.sol";
 import {StakedBearnBGT} from "src/StakedBearnBGT.sol";
+import {StakedBearnBGTCompounder} from "src/StakedBearnBGTCompounder.sol";
+
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
 import {IBearnCompoundingVault} from "src/interfaces/IBearnCompoundingVault.sol";
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
@@ -57,6 +59,7 @@ abstract contract BearnBaseHelper is BeraHelper {
     IBearnCompoundingVault internal bearnCompoundingVault;
     IBaseAuctioneer internal bearnCompoundingVaultAuction;
     StakedBearnBGT internal styBGT;
+    StakedBearnBGTCompounder internal styBGTCompounder;
 
     /// @dev A function invoked before each test case is run.
     function setUp() public virtual override {
@@ -171,8 +174,15 @@ abstract contract BearnBaseHelper is BeraHelper {
             address(yBGT),
             address(honey)
         );
-        // Accept styBGT Auction's governance
-        bearnVaultManager.registerAuction(address(styBGT.auction()));
+
+        styBGTCompounder = new StakedBearnBGTCompounder(
+            address(styBGT),
+            address(bearnVaultManager),
+            address(honey)
+        );
+
+        // Accept styBGT Compounder's Auction's governance
+        bearnVaultManager.registerAuction(address(styBGTCompounder.auction()));
 
         // Deploy Bearn Voter Manager
         bearnVoterManager = new BearnVoterManager(

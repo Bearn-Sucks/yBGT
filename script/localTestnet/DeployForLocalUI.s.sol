@@ -134,6 +134,11 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         );
         json = vm.serializeAddress(
             "EXPORTS",
+            "styBGTCompounder",
+            address(deployedContracts.styBGTCompounder)
+        );
+        json = vm.serializeAddress(
+            "EXPORTS",
             "feeModule",
             address(deployedContracts.feeModule)
         );
