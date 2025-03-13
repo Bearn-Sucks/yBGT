@@ -34,39 +34,50 @@ contract LocalUIDeployment is DeployScript, StdCheats {
     address[] internal tokensWithOracles;
     bytes32[] internal oracleIds;
 
+    bool internal testing;
+
     function setUp() public override {
+        testing = vm.envBool("TESTING");
+
         // reset fork
-        vm.rpc(
-            "hardhat_reset",
-            '[{"forking": {"jsonRpcUrl": "https://rpc.berachain.com","blockNumber": 2020603}}]'
-        );
+        if (testing) {
+            vm.rpc(
+                "hardhat_reset",
+                '[{"forking": {"jsonRpcUrl": "https://rpc.berachain.com","blockNumber": 2198847}}]'
+            );
+        }
 
         console.log(block.number);
 
-        // create a testnet wallet
-        vm.rememberKey(
-            vm.deriveKey(
-                "test test test test test test test test test test test junk",
-                0
-            )
-        );
-        address[] memory wallets = vm.getWallets();
-        deployer = wallets[0];
+        // create a testnet wallet if needed
+        deployer = vm.envAddress("DEPLOYER_ADDRESS");
+        if (deployer == address(0)) {
+            vm.rememberKey(
+                vm.deriveKey(
+                    "test test test test test test test test test test test junk",
+                    0
+                )
+            );
+            address[] memory wallets = vm.getWallets();
+            deployer = wallets[0];
+        }
         console.log("deployer", deployer);
 
         // deal some eth
-        vm.rpc(
-            "hardhat_setBalance",
-            string.concat(
-                "[",
-                '"',
-                vm.toString(deployer),
-                '","',
-                vm.toString(uint256(1000 ether)),
-                '"',
-                "]"
-            )
-        );
+        if (testing) {
+            vm.rpc(
+                "hardhat_setBalance",
+                string.concat(
+                    "[",
+                    '"',
+                    vm.toString(deployer),
+                    '","',
+                    vm.toString(uint256(1000 ether)),
+                    '"',
+                    "]"
+                )
+            );
+        }
 
         // Read whitelisted addresss from configs
         string memory root = vm.projectRoot();
@@ -155,7 +166,7 @@ contract LocalUIDeployment is DeployScript, StdCheats {
     }
 
     function deployUIContracts(DeployedContracts memory c) public {
-        vm.startBroadcast();
+        vm.startBroadcast(deployer);
 
         BearnUIControlCentre uiControl = new BearnUIControlCentre(
             address(c.authorizer)
@@ -203,7 +214,7 @@ contract LocalUIDeployment is DeployScript, StdCheats {
     }
 
     function deployVaults(DeployedContracts memory c) public {
-        vm.startBroadcast();
+        vm.startBroadcast(deployer);
 
         for (uint i = 0; i < stakes.length; i++) {
             address stakeToken = stakes[i];
@@ -226,42 +237,52 @@ contract LocalUIDeployment is DeployScript, StdCheats {
             // even if the destination is an anvil fork
 
             // reset deal some eth
-            vm.rpc(
-                "hardhat_setBalance",
-                string.concat(
-                    "[",
-                    '"',
-                    vm.toString(tokenWhale),
-                    '","',
-                    vm.toString(uint256(1000 ether)),
-                    '"',
-                    "]"
-                )
-            );
+            if (testing) {
+                vm.rpc(
+                    "hardhat_setBalance",
+                    string.concat(
+                        "[",
+                        '"',
+                        vm.toString(tokenWhale),
+                        '","',
+                        vm.toString(uint256(1000 ether)),
+                        '"',
+                        "]"
+                    )
+                );
 
-            bytes memory data = abi.encodeCall(
-                ERC20.transfer,
-                (deployer, 1000 ether)
-            );
+                bytes memory data = abi.encodeCall(
+                    ERC20.transfer,
+                    (deployer, 1000 ether)
+                );
 
-            string memory params;
-            params = vm.serializeAddress("params", "to", address(stakeToken));
-            params = vm.serializeAddress("params", "from", address(tokenWhale));
-            params = vm.serializeBytes("params", "data", data);
-            params = vm.serializeBytes32(
-                "params",
-                "gas",
-                bytes32(uint256(1000000))
-            );
-            params = vm.serializeBytes32(
-                "params",
-                "gasPrice",
-                bytes32(tx.gasprice)
-            );
-            params = vm.serializeBytes32("params", "value", bytes32(0));
+                string memory params;
+                params = vm.serializeAddress(
+                    "params",
+                    "to",
+                    address(stakeToken)
+                );
+                params = vm.serializeAddress(
+                    "params",
+                    "from",
+                    address(tokenWhale)
+                );
+                params = vm.serializeBytes("params", "data", data);
+                params = vm.serializeBytes32(
+                    "params",
+                    "gas",
+                    bytes32(uint256(1000000))
+                );
+                params = vm.serializeBytes32(
+                    "params",
+                    "gasPrice",
+                    bytes32(tx.gasprice)
+                );
+                params = vm.serializeBytes32("params", "value", bytes32(0));
 
-            vm.rpc("eth_sendTransaction", string.concat("[", params, "]"));
-            vm.rpc("hardhat_mine", "[]");
+                vm.rpc("eth_sendTransaction", string.concat("[", params, "]"));
+                vm.rpc("hardhat_mine", "[]");
+            }
         }
 
         vm.stopBroadcast();

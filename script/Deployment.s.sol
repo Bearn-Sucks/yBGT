@@ -54,8 +54,12 @@ contract DeployScript is Script {
             string.concat(root, "/script/configs/bearnManagementAddresses.json")
         );
 
-        address[] memory wallets = vm.getWallets();
-        deployer = wallets[0];
+        deployer = vm.envAddress("DEPLOYER_ADDRESS");
+        if (deployer == address(0)) {
+            address[] memory wallets = vm.getWallets();
+            deployer = wallets[0];
+        }
+        console.log("deployer", deployer);
 
         msig = configs.readAddress(".multisig");
 
@@ -141,7 +145,7 @@ contract DeployScript is Script {
         public
         returns (DeployedContracts memory deployedContracts)
     {
-        vm.startBroadcast();
+        vm.startBroadcast(deployer);
 
         ////////////////////////
         /// Deploy contracts ///
