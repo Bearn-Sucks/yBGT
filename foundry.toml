@@ -32,4 +32,7 @@ remappings = [
 	"@bearn/governance/contracts=lib/bearn-governance/src",
 ]
 
+[etherscan]
+unknown_chain = { chain = 80094, key = "${BERASCAN_API_KEY}", url = "${BERASCAN_URL}" }
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
