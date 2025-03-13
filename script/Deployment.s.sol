@@ -15,6 +15,8 @@ import {BearnBGTFeeModule} from "src/BearnBGTFeeModule.sol";
 import {StakedBearnBGT} from "src/StakedBearnBGT.sol";
 import {StakedBearnBGTCompounder} from "src/StakedBearnBGTCompounder.sol";
 
+import {IBearnVault} from "src/interfaces/IBearnVault.sol";
+
 contract DeployScript is Script {
     using stdJson for string;
 
@@ -250,6 +252,19 @@ contract DeployScript is Script {
         // Accept styBGT Compounder's Auction's governance
         deployedContracts.vaultManager.registerAuction(
             address(deployedContracts.styBGTCompounder.auction())
+        );
+
+        // Transfer styBGT and styBGTCompounder's management to vault manager
+        IBearnVault(address(deployedContracts.styBGT)).setPendingManagement(
+            address(deployedContracts.vaultManager)
+        );
+        IBearnVault(address(deployedContracts.styBGTCompounder))
+            .setPendingManagement(address(deployedContracts.vaultManager));
+        deployedContracts.vaultManager.registerVault(
+            address(deployedContracts.styBGT)
+        );
+        deployedContracts.vaultManager.registerVault(
+            address(deployedContracts.styBGTCompounder)
         );
 
         vm.stopBroadcast();

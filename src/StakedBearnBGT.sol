@@ -37,6 +37,7 @@ contract StakedBearnBGT is TokenizedStaker {
         honey = IERC20(_honey);
         bearnVoter = IBearnVoter(_bearnVoter);
         bearnVaultManager = IBearnVaultManager(_bearnVaultManager);
+        _addReward(_honey, address(this), 1);
     }
 
     function _deployFunds(uint256 amount) internal override {}
