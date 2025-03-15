@@ -17,7 +17,6 @@ abstract contract BearnVault is TokenizedStaker {
 
     IBearnVaultFactory public immutable bearnVaultFactory;
     IBeraVault public immutable beraVault;
-    IBearnVoter public immutable bearnVoter;
     IBearnBGT public immutable yBGT;
 
     constructor(
