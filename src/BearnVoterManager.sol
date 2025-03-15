@@ -228,6 +228,9 @@ contract BearnVoterManager is Authorized {
 
     /* ========== REWARDS ========== */
     function getReward() external returns (uint256) {
+        // Gated so only styBGT can call this
+        require(msg.sender == address(styBGT), "!authorized");
+
         // Claim rewards
         bytes memory data = abi.encodeCall(bgtStaker.getReward, ());
 
