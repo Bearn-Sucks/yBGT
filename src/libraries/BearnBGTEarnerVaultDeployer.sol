@@ -22,6 +22,7 @@ library BearnBGTEarnerVaultDeployer {
                     ERC20(stakingToken).symbol(),
                     " yBGT Vault"
                 ),
+                string.concat("by", ERC20(stakingToken).symbol()),
                 stakingToken,
                 beraVault,
                 address(yBGT)

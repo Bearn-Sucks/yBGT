@@ -23,10 +23,11 @@ contract BearnBGTEarnerVault is BearnVault {
 
     constructor(
         string memory _name,
+        string memory _symbol,
         address _asset,
         address _beraVault,
         address _yBGT
-    ) BearnVault(_name, _asset, _beraVault, _yBGT) {}
+    ) BearnVault(_name, _symbol, _asset, _beraVault, _yBGT) {}
 
     /// @notice Adds yBGT as an instantly released reward
     function _initialize() internal override {

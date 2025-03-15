@@ -22,6 +22,7 @@ library BearnCompoundingVaultDeployer {
                     ERC20(stakingToken).symbol(),
                     " Compounding Vault"
                 ),
+                string.concat("bc", ERC20(stakingToken).symbol()),
                 stakingToken,
                 beraVault,
                 address(yBGT)

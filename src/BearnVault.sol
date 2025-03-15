@@ -18,13 +18,16 @@ abstract contract BearnVault is TokenizedStaker {
     IBearnVaultFactory public immutable bearnVaultFactory;
     IBeraVault public immutable beraVault;
     IBearnBGT public immutable yBGT;
+    string public symbol;
 
     constructor(
         string memory _name,
+        string memory _symbol,
         address _asset,
         address _beraVault,
         address _yBGT
     ) TokenizedStaker(_asset, _name) {
+        symbol = _symbol;
         bearnVaultFactory = IBearnVaultFactory(msg.sender);
         beraVault = IBeraVault(_beraVault);
         yBGT = IBearnBGT(_yBGT);
