@@ -20,18 +20,27 @@ contract BearnVaultManager is BearnExecutor, Authorized {
 
     error NotFactory();
 
+    /* ========== Events ========== */
+
+    event UpdateEmergencyAdmin(address indexed newEmergencyAdmin);
+
     address public immutable bearnVaultFactory;
     address public immutable bearnVoter;
+    address public emergencyAdmin;
 
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
         address _authorizer,
+        address _emergencyAdmin,
         address _bearnVaultFactory,
         address _bearnVoter
     ) Authorized(_authorizer) {
+        emergencyAdmin = _emergencyAdmin;
         bearnVaultFactory = _bearnVaultFactory;
         bearnVoter = _bearnVoter;
+
+        emit UpdateEmergencyAdmin(_emergencyAdmin);
     }
 
     function registerVault(address bearnVault) external {
@@ -47,6 +56,7 @@ contract BearnVaultManager is BearnExecutor, Authorized {
         IBearnVault(bearnVault).acceptManagement();
         address treasury = IBearnVoter(bearnVoter).treasury();
         IBearnVault(bearnVault).setPerformanceFeeRecipient(treasury);
+        IBearnVault(bearnVault).setEmergencyAdmin(emergencyAdmin);
     }
 
     function registerAuction(address auction) external {
@@ -61,6 +71,16 @@ contract BearnVaultManager is BearnExecutor, Authorized {
         );
 
         Auction(auction).acceptGovernance();
+    }
+
+    /// @dev This function only changes the emergency admin for new vaults,
+    /// txs should be queued via exeute() to update existing vaults
+    /// @param _emergencyAdmin New emergency admin
+    function setEmergencyAdmin(
+        address _emergencyAdmin
+    ) external isAuthorized(MANAGER_ROLE) {
+        emergencyAdmin = _emergencyAdmin;
+        emit UpdateEmergencyAdmin(_emergencyAdmin);
     }
 
     /// @notice Makes it so the Manager can do arbitrary calls

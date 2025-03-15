@@ -153,6 +153,7 @@ abstract contract BearnBaseHelper is BeraHelper {
         // Deploy Bearn Vault Manager
         bearnVaultManager = new BearnVaultManager(
             address(authorizer),
+            address(operator),
             address(bearnVaultFactory),
             address(bearnVoter)
         );

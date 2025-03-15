@@ -189,6 +189,7 @@ contract DeployScript is Script {
 
         deployedContracts.vaultManager = new BearnVaultManager(
             address(deployedContracts.authorizer),
+            msig,
             address(deployedContracts.vaultFactory),
             address(deployedContracts.voter)
         );
