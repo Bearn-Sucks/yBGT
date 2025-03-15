@@ -30,7 +30,7 @@ contract BearnVoterManager is Authorized {
     IBearnVoter public immutable bearnVoter;
     address public immutable styBGT;
 
-    bytes32 internal constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     /* ========== CONSTRUCTOR AND INITIALIZER ========== */
     constructor(
@@ -104,6 +104,11 @@ contract BearnVoterManager is Authorized {
         bytes calldata pubkey,
         uint128 amount
     ) external isAuthorized(OPERATOR_ROLE) {
+        // Fetch max available if type(uint128).max is passed
+        if (amount == type(uint128).max) {
+            amount = uint128(bgt.unboostedBalanceOf(address(bearnVoter))); // Input real amounts if this will overflow
+        }
+
         bytes memory data = abi.encodeCall(bgt.queueBoost, (pubkey, amount));
 
         bearnVoter.execute(
@@ -119,6 +124,11 @@ contract BearnVoterManager is Authorized {
         bytes calldata pubkey,
         uint128 amount
     ) external isAuthorized(OPERATOR_ROLE) {
+        // Fetch max available if type(uint128).max is passed
+        if (amount == type(uint128).max) {
+            (, amount) = bgt.boostedQueue(address(bearnVoter), pubkey);
+        }
+
         bytes memory data = abi.encodeCall(bgt.cancelBoost, (pubkey, amount));
 
         bearnVoter.execute(
@@ -154,6 +164,11 @@ contract BearnVoterManager is Authorized {
         bytes calldata pubkey,
         uint128 amount
     ) external isAuthorized(OPERATOR_ROLE) {
+        // Fetch max available if type(uint128).max is passed
+        if (amount == type(uint128).max) {
+            amount = bgt.boosted(address(bearnVoter), pubkey);
+        }
+
         bytes memory data = abi.encodeCall(
             bgt.queueDropBoost,
             (pubkey, amount)
@@ -172,6 +187,11 @@ contract BearnVoterManager is Authorized {
         bytes calldata pubkey,
         uint128 amount
     ) external isAuthorized(OPERATOR_ROLE) {
+        // Fetch max available if type(uint128).max is passed
+        if (amount == type(uint128).max) {
+            (, amount) = bgt.dropBoostQueue(address(bearnVoter), pubkey);
+        }
+
         bytes memory data = abi.encodeCall(
             bgt.cancelDropBoost,
             (pubkey, amount)
