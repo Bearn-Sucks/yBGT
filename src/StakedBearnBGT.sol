@@ -63,7 +63,7 @@ contract StakedBearnBGT is TokenizedStaker {
         // claim and notify first before updating user rewards
         // this will run on deposits, withdrawals, transfers, and getRewards
         if (_account != address(0)) {
-            _claimAndNotify();
+            _claimAndNotify(); // this won't cause inifinite loops because we only run _claimAndNotify once per block
         }
 
         super._updateReward(_account);
@@ -72,7 +72,7 @@ contract StakedBearnBGT is TokenizedStaker {
     function _claimAndNotify() internal {
         // only run once a block
         if (block.number != lastClaimedBlock) {
-            lastClaimedBlock = block.number;
+            lastClaimedBlock = block.number; // this is safe since rewards can't come in in the middle of a block
 
             // Fetch voterManager as it can change
             IBearnVoterManager voterManager = IBearnVoterManager(

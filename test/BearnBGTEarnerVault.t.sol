@@ -44,7 +44,7 @@ contract BearnBGTEarnerVaultTest is BearnBaseHelper {
 
         uint256 balanceAfter = yBGT.balanceOf(address(bearnVault));
         console.log("bearnVault yBGT balance after", balanceAfter);
-        assertApproxEqAbs(1 ether, balanceAfter - balanceBefore, 0.1 gwei);
+        assertApproxEqAbs(balanceAfter - balanceBefore, 1 ether, 0.1 gwei);
     }
 
     function test_getReward() public virtual {
@@ -65,7 +65,7 @@ contract BearnBGTEarnerVaultTest is BearnBaseHelper {
 
         console.log("user yBGT balance after", balanceAfter);
 
-        assertApproxEqAbs(1 ether, balanceAfter - balanceBefore, 0.1 gwei);
+        assertApproxEqAbs(balanceAfter - balanceBefore, 1 ether, 0.1 gwei);
     }
 
     function test_getReward_Multiple_Users() public virtual {
@@ -101,8 +101,18 @@ contract BearnBGTEarnerVaultTest is BearnBaseHelper {
         console.log("user yBGT balance after", balanceAfter);
         console.log("user2 yBGT balance after", balanceAfter2);
 
-        assertApproxEqAbs(0.5 ether, balanceAfter - balanceBefore, 0.1 gwei);
-        assertApproxEqAbs(0.5 ether, balanceAfter2 - balanceBefore2, 0.1 gwei);
+        assertApproxEqAbs(
+            balanceAfter - balanceBefore,
+            0.5 ether,
+            0.1 gwei,
+            "user1 wrong"
+        );
+        assertApproxEqAbs(
+            balanceAfter2 - balanceBefore2,
+            0.5 ether,
+            0.1 gwei,
+            "user2 wrong"
+        );
     }
 
     function test_anti_whale_jit() public virtual {
@@ -118,6 +128,7 @@ contract BearnBGTEarnerVaultTest is BearnBaseHelper {
         beraVault.notifyRewardAmount(valData.pubkey, 1 ether);
 
         vm.warp(block.timestamp + 3);
+        vm.roll(block.number+1);
 
         uint256 balanceBefore = yBGT.balanceOf(user);
         uint256 balanceBefore2 = yBGT.balanceOf(user2);
@@ -132,6 +143,7 @@ contract BearnBGTEarnerVaultTest is BearnBaseHelper {
         bearnVault.getReward();
 
         vm.warp(block.timestamp + 86400);
+        vm.roll(block.number+1);
 
         // get user's rewards
         vm.prank(user);
@@ -144,7 +156,17 @@ contract BearnBGTEarnerVaultTest is BearnBaseHelper {
         console.log("user2 yBGT balance after", balanceAfter2);
 
         // user should still be getting all the rewards, and 0 to the whale
-        assertApproxEqAbs(1 ether, balanceAfter - balanceBefore, 0.1 gwei);
-        assertApproxEqAbs(0 ether, balanceAfter2 - balanceBefore2, 0.1 gwei);
+        assertApproxEqAbs(
+            balanceAfter - balanceBefore,
+            1 ether,
+            0.1 gwei,
+            "user didn't get rewards"
+        );
+        assertApproxEqAbs(
+            balanceAfter2 - balanceBefore2,
+            0 ether,
+            0.1 gwei,
+            "whale got rewards"
+        );
     }
 }

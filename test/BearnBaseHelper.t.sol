@@ -261,6 +261,7 @@ abstract contract BearnBaseHelper is BeraHelper {
         beraVault.notifyRewardAmount(valData.pubkey, amount);
 
         vm.warp(block.timestamp + 3);
+        vm.roll(block.number + 1);
 
         keeper.report(_bearnVault);
     }

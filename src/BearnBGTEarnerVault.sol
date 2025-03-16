@@ -40,8 +40,7 @@ contract BearnBGTEarnerVault is BearnVault {
     function _claimAndNotify() internal virtual {
         // only run once a block
         if (block.number != lastClaimedBlock) {
-            lastClaimedBlock = block.number;
-
+            lastClaimedBlock = block.number; // this is safe since rewards can't come in in the middle of a block
             // This claims the BGT to the Bearn Voter in return for yBGT
             uint256 rewardAmount = yBGT.wrap(address(asset));
 
@@ -58,7 +57,7 @@ contract BearnBGTEarnerVault is BearnVault {
         // claim and notify first before updating user rewards
         // this will run on deposits, withdrawals, transfers, and getRewards
         if (_account != address(0)) {
-            _claimAndNotify();
+            _claimAndNotify(); // this won't cause inifinite loops because we only run _claimAndNotify once per block
         }
 
         super._updateReward(_account);
