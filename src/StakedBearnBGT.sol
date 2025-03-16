@@ -63,7 +63,7 @@ contract StakedBearnBGT is TokenizedStaker {
         // claim and notify first before updating user rewards
         // this will run on deposits, withdrawals, transfers, and getRewards
         if (_account != address(0)) {
-            _claimAndNotify(); // this won't cause inifinite loops because we only run _claimAndNotify once per block
+            _claimAndNotify(); // this won't cause infinite loops because we only run _claimAndNotify once per block
         }
 
         super._updateReward(_account);
