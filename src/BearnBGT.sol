@@ -81,7 +81,7 @@ contract BearnBGT is ERC20, ERC20Permit, Authorized {
         return outputAmount;
     }
 
-    /// @notice Allow users to redeem yBGT back into BGT
+    /// @notice Allow users to redeem yBGT into wbera
     /// @param amount Redeem amount
     /// @dev Redeem can be paused by making Fee Module revert on redeeming
     function redeem(uint256 amount) external returns (uint256 outputAmount) {
