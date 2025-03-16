@@ -27,6 +27,8 @@ contract StakedBearnBGT is TokenizedStaker {
     IERC20 public immutable honey;
     IBearnVaultManager public immutable bearnVaultManager;
 
+    uint256 public lastClaimedBlock;
+
     constructor(
         address _bearnVoter,
         address _bearnVaultManager,
@@ -49,23 +51,42 @@ contract StakedBearnBGT is TokenizedStaker {
         override
         returns (uint256 _totalAssets)
     {
-        // Fetch voterManager as it can change
-        IBearnVoterManager voterManager = IBearnVoterManager(
-            bearnVoter.voterManager()
-        );
-
-        // Call getReward() to transfer honey to this address
-        uint256 honeyBefore = honey.balanceOf(address(this));
-        voterManager.getReward();
-        uint256 rewardAmount = honey.balanceOf(address(this)) - honeyBefore;
-
-        // Notify rewards if needed
-        if (rewardAmount > 0) {
-            // notify the newly received honey
-            _notifyRewardAmount(address(honey), rewardAmount);
-        }
+        _claimAndNotify();
 
         // report total assets
         _totalAssets = yBGT.balanceOf(address(this));
+    }
+
+    /* ========== OVERRIDES ========== */
+
+    function _updateReward(address _account) internal override {
+        // claim and notify first before updating user rewards
+        // this will run on deposits, withdrawals, transfers, and getRewards
+        if (_account != address(0)) {
+            _claimAndNotify();
+        }
+
+        super._updateReward(_account);
+    }
+
+    function _claimAndNotify() internal {
+        // only run once a block
+        if (block.number != lastClaimedBlock) {
+            lastClaimedBlock = block.number;
+
+            // Fetch voterManager as it can change
+            IBearnVoterManager voterManager = IBearnVoterManager(
+                bearnVoter.voterManager()
+            );
+
+            // Call getReward() to transfer honey to this address
+            uint256 rewardAmount = voterManager.getReward();
+
+            // Notify rewards if needed
+            if (rewardAmount > 0) {
+                // notify the newly received honey
+                _notifyRewardAmount(address(honey), rewardAmount);
+            }
+        }
     }
 }

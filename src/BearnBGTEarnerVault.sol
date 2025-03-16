@@ -11,6 +11,8 @@ import {BearnVault} from "src/BearnVault.sol";
 contract BearnBGTEarnerVault is BearnVault {
     using SafeERC20 for IERC20;
 
+    uint256 public lastClaimedBlock;
+
     /* ========== ERRORS ========== */
 
     error AuctionNotDeployed();
@@ -36,16 +38,31 @@ contract BearnBGTEarnerVault is BearnVault {
     }
 
     function _claimAndNotify() internal virtual {
-        // This claims the BGT to the Bearn Voter in return for yBGT
-        uint256 rewardAmount = yBGT.wrap(address(asset));
+        // only run once a block
+        if (block.number != lastClaimedBlock) {
+            lastClaimedBlock = block.number;
 
-        if (rewardAmount > 0) {
-            // notify the newly received yBGT
-            _notifyRewardAmount(address(yBGT), rewardAmount);
+            // This claims the BGT to the Bearn Voter in return for yBGT
+            uint256 rewardAmount = yBGT.wrap(address(asset));
+
+            if (rewardAmount > 0) {
+                // notify the newly received yBGT
+                _notifyRewardAmount(address(yBGT), rewardAmount);
+            }
         }
     }
 
     /* ========== OVERRIDES ========== */
+
+    function _updateReward(address _account) internal override {
+        // claim and notify first before updating user rewards
+        // this will run on deposits, withdrawals, transfers, and getRewards
+        if (_account != address(0)) {
+            _claimAndNotify();
+        }
+
+        super._updateReward(_account);
+    }
 
     function _harvestAndReport()
         internal
@@ -63,37 +80,5 @@ contract BearnBGTEarnerVault is BearnVault {
 
         // report total assets
         _totalAssets = beraVault.balanceOf(address(this));
-    }
-
-    function _preDepositHook(
-        uint256 assets,
-        uint256 shares,
-        address receiver
-    ) internal virtual override {
-        // Claim before deposits, withdraws, and transfers
-        _claimAndNotify();
-        super._preDepositHook(assets, shares, receiver);
-    }
-
-    function _preWithdrawHook(
-        uint256 assets,
-        uint256 shares,
-        address receiver,
-        address owner,
-        uint256 maxLoss
-    ) internal virtual override {
-        // Claim before deposits, withdraws, and transfers
-        _claimAndNotify();
-        super._preWithdrawHook(assets, shares, receiver, owner, maxLoss);
-    }
-
-    function _preTransferHook(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual override {
-        // Claim before deposits, withdraws, and transfers
-        _claimAndNotify();
-        super._preTransferHook(from, to, amount);
     }
 }
