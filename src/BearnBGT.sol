@@ -5,7 +5,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
-import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
+import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
 import {IRewardVaultFactory as IBeraVaultFactory} from "@berachain/contracts/pol/interfaces/IRewardVaultFactory.sol";

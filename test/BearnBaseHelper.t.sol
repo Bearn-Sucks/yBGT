@@ -14,7 +14,7 @@ import {IBaseAuctioneer} from "@yearn/tokenized-strategy-periphery/Bases/Auction
 
 import {Keeper} from "src/mock/MockKeeper.sol";
 
-import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
+import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 import {BearnAuthorizer} from "@bearn/governance/contracts/BearnAuthorizer.sol";
 
 import {BearnBGT} from "src/BearnBGT.sol";
@@ -112,7 +112,9 @@ abstract contract BearnBaseHelper is BeraHelper {
         // Deploy Bearn contracts
 
         // Deploy Bearn Authorizer
-        authorizer = new BearnAuthorizer(bearnManager);
+        authorizer = new BearnAuthorizer();
+
+        authorizer.initialize(bearnManager, bearnManager);
 
         // Deploy Bearn Voter
         bearnVoter = new BearnVoter(

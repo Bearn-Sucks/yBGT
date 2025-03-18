@@ -33,7 +33,7 @@ abstract contract BearnVault is TokenizedStaker {
         yBGT = IBearnBGT(_yBGT);
 
         // set up approvals
-        IERC20(_asset).safeApprove(address(beraVault), type(uint256).max);
+        IERC20(_asset).forceApprove(address(beraVault), type(uint256).max); // force approve is the new safeApprove in OZ
 
         // call setOperator so the BGT can be claimed to Bearn Voter
         IBeraVault(_beraVault).setOperator(_yBGT);

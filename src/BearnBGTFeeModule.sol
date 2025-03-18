@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity >=0.8.18;
 
-import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
+import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 import {BearnVaultFactory} from "src/BearnVaultFactory.sol";
 
 /// @title yBGT Fee Module

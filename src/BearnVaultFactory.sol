@@ -3,7 +3,7 @@ pragma solidity >=0.8.18;
 
 import {IRewardVaultFactory as IBeraVaultFactory} from "@berachain/contracts/pol/interfaces/IRewardVaultFactory.sol";
 
-import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
+import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
 import {BearnVault} from "src/BearnVault.sol";
 import {BearnCompoundingVault} from "src/BearnCompoundingVault.sol";

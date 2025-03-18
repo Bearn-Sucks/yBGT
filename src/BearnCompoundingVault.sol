@@ -55,7 +55,7 @@ contract BearnCompoundingVault is BearnVault {
         uint256 _balance = IERC20(yBGT).balanceOf(address(this));
 
         if (_balance > 0) {
-            IERC20(yBGT).safeApprove(address(auctionFactory), _balance);
+            IERC20(yBGT).forceApprove(address(auctionFactory), _balance); // force approve is the new safeApprove in OZ
 
             auctionFactory.kickAuction(address(asset), _balance);
         }

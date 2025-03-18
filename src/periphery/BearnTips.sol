@@ -8,7 +8,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 
 import {IRewardVaultFactory as IBeraVaultFactory} from "@berachain/contracts/pol/interfaces/IRewardVaultFactory.sol";
 
-import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
+import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
 import {BearnVault} from "src/BearnVault.sol";
 import {BearnCompoundingVault} from "src/BearnCompoundingVault.sol";
@@ -49,7 +49,7 @@ contract BearnTips is Authorized {
         uint256 tips
     ) external {
         IERC20(staking).safeTransferFrom(msg.sender, address(this), amount);
-        IERC20(staking).safeApprove(bearnVault, amount);
+        IERC20(staking).forceApprove(bearnVault, amount); // force approve is the new safeApprove in OZ
 
         uint256 output = IBearnVault(bearnVault).deposit(amount, address(this));
 

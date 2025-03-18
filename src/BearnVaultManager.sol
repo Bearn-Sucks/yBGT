@@ -4,7 +4,7 @@ pragma solidity >=0.8.18;
 import {Auction} from "@yearn/tokenized-strategy-periphery/Auctions/Auction.sol";
 
 import {BearnAuthorizer} from "@bearn/governance/contracts/BearnAuthorizer.sol";
-import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
+import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
 import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
