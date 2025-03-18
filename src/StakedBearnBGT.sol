@@ -82,6 +82,17 @@ contract StakedBearnBGT is TokenizedStaker {
             // Call getReward() to transfer honey to this address
             uint256 rewardAmount = voterManager.getReward();
 
+            // transfer fees if needed
+            uint256 feeBps = TokenizedStrategy.performanceFee();
+            uint256 fees = (rewardAmount * feeBps) / 10_000;
+            if (fees > 0) {
+                rewardAmount -= fees;
+                honey.safeTransfer(
+                    TokenizedStrategy.performanceFeeRecipient(),
+                    fees
+                );
+            }
+
             // Notify rewards if needed
             if (rewardAmount > 0) {
                 // notify the newly received honey
