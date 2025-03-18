@@ -13,4 +13,4 @@
 	url = https://github.com/yearn/tokenized-strategy-periphery
 [submodule "lib/bearn-governance"]
 	path = lib/bearn-governance
-	url = git@github:Bearn-Sucks/bearn-governance.git
+	url = git@github.com:Bearn-Sucks/bearn-governance.git
