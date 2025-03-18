@@ -7,7 +7,7 @@ import {IBGT} from "@berachain/contracts/pol/BGT.sol";
 import {WBERA} from "@berachain/contracts/WBERA.sol";
 
 import {BearnAuthorizer} from "@bearn/governance/contracts/BearnAuthorizer.sol";
-import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
+import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
 import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";

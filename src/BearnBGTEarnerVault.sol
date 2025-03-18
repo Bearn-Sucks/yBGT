@@ -82,7 +82,7 @@ contract BearnBGTEarnerVault is BearnVault {
     }
 
     // Accounts for any unclaimed BGT rewards that would be claimed on next touch
-    function updatedEarned(address _account, address _rewardToken) public view virtual override returns (uint256) {
+    function updatedEarned(address _account, address _rewardToken) public view virtual returns (uint256) {
         uint256 unclaimedRewards;
         if (_rewardToken == address(yBGT)) {
             uint256 pendingBGT = beraVault.earned(address(this));

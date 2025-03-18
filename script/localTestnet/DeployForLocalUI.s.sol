@@ -24,7 +24,7 @@ import {BearnTips} from "src/periphery/BearnTips.sol";
 
 import {DeployScript} from "script/Deployment.s.sol";
 
-import {ERC20} from "@openzeppelin-yearn/contracts/token/ERC20/ERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract LocalUIDeployment is DeployScript, StdCheats {
     using stdJson for string;

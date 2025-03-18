@@ -153,7 +153,12 @@ contract DeployScript is Script {
         /// Deploy contracts ///
         ////////////////////////
 
-        deployedContracts.authorizer = new BearnAuthorizer(deployer);
+        deployedContracts.authorizer = new BearnAuthorizer();
+
+        deployedContracts.authorizer.initialize(
+            deployer,
+            deployer
+        );
 
         deployedContracts.voter = new BearnVoter(
             address(deployedContracts.authorizer),

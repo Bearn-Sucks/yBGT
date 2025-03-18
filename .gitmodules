@@ -7,10 +7,10 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-
+	version = 4.9.5
 [submodule "lib/yearn-tokenized-strategy-periphery"]
 	path = lib/yearn-tokenized-strategy-periphery
 	url = https://github.com/yearn/tokenized-strategy-periphery
 [submodule "lib/bearn-governance"]
 	path = lib/bearn-governance
-	url = git@github:Bearn-Sucks/bearn-governance.git
+	url = https://github.com/Bearn-Sucks/bearn-governance
