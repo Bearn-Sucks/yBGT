@@ -8,7 +8,7 @@ import {IBexVault} from "src/interfaces/IBexVault.sol";
 
 import {IPythOracle} from "src/interfaces/IPythOracle.sol";
 
-import {Authorized} from "@bearn/governance/contracts/Authorized.sol";
+import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
 import {BearnVault} from "src/BearnVault.sol";
 import {BearnCompoundingVault} from "src/BearnCompoundingVault.sol";

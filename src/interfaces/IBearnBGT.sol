@@ -31,6 +31,7 @@ interface IBearnBGT is IERC20, IERC20Permit {
     ) external view returns (uint256 outputAmount);
 
     function previewRedeem(
+        address to,
         uint256 amount
     ) external view returns (uint256 outputAmount);
 

@@ -80,4 +80,20 @@ contract BearnBGTEarnerVault is BearnVault {
         // report total assets
         _totalAssets = beraVault.balanceOf(address(this));
     }
+
+    // Accounts for any unclaimed BGT rewards that would be claimed on next touch
+    function updatedEarned(address _account, address _rewardToken) public view virtual override returns (uint256) {
+        uint256 unclaimedRewards;
+        if (_rewardToken == address(yBGT)) {
+            uint256 pendingBGT = beraVault.earned(address(this));
+
+            // This would be the amount of yBGT received after wrapping the BGT
+            uint256 ybgtAmount = yBGT.previewWrap(address(this), pendingBGT);
+    
+            unclaimedRewards = (ybgtAmount * TokenizedStrategy.balanceOf(_account)) / _totalSupply();
+        }
+
+        // Return current earned plus new rewards
+        return super.earned(_account, _rewardToken) + unclaimedRewards;
+    }
 }
