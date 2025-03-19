@@ -10,10 +10,7 @@ import {WBERA} from "@berachain/contracts/WBERA.sol";
 
 import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
-import {IBeraVault} from "src/interfaces/IBeraVault.sol";
-import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
 import {IBearnVoter} from "src/interfaces/IBearnVoter.sol";
-import {IBearnVault} from "src/interfaces/IBearnVault.sol";
 
 /// @title BearnVoterManager
 /// @author Bearn.sucks

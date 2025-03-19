@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity >=0.8.18;
 
-import {IRewardVaultFactory as IBeraVaultFactory} from "@berachain/contracts/pol/interfaces/IRewardVaultFactory.sol";
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
 import {IBeraWeightedPool} from "src/interfaces/IBeraWeightedPool.sol";
 import {IBexVault} from "src/interfaces/IBexVault.sol";
@@ -11,16 +10,8 @@ import {IPythOracle} from "src/interfaces/IPythOracle.sol";
 import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
 import {BearnVault} from "src/BearnVault.sol";
-import {BearnCompoundingVault} from "src/BearnCompoundingVault.sol";
-import {BearnBGTEarnerVault} from "src/BearnBGTEarnerVault.sol";
 
-import {BearnCompoundingVaultDeployer} from "src/libraries/BearnCompoundingVaultDeployer.sol";
-import {BearnBGTEarnerVaultDeployer} from "src/libraries/BearnBGTEarnerVaultDeployer.sol";
-
-import {IBearnVaultManager} from "src/interfaces/IBearnVaultManager.sol";
-import {IBearnAuctionFactory} from "src/interfaces/IBearnAuctionFactory.sol";
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
-import {IBearnCompoundingVault} from "src/interfaces/IBearnCompoundingVault.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";

@@ -5,11 +5,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {TokenizedStaker} from "@yearn/tokenized-strategy-periphery/Bases/Staker/TokenizedStaker.sol";
-import {TokenizedStrategy} from "@yearn/tokenized-strategy/TokenizedStrategy.sol";
 
 import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
-import {IBearnVoter} from "src/interfaces/IBearnVoter.sol";
 import {IBearnBGT} from "src/interfaces/IBearnBGT.sol";
 
 abstract contract BearnVault is TokenizedStaker {

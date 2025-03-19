@@ -6,11 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 import {TokenizedStaker} from "@yearn/tokenized-strategy-periphery/Bases/Staker/TokenizedStaker.sol";
 import {TokenizedStrategy} from "@yearn/tokenized-strategy/TokenizedStrategy.sol";
-import {Auction} from "@yearn/tokenized-strategy-periphery/Auctions/Auction.sol";
-import {AuctionFactory} from "@yearn/tokenized-strategy-periphery/Auctions/AuctionFactory.sol";
 
-import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
-import {IBeraVault} from "src/interfaces/IBeraVault.sol";
 import {IBearnVoter} from "src/interfaces/IBearnVoter.sol";
 import {IBearnVoterManager} from "src/interfaces/IBearnVoterManager.sol";
 import {IBearnVaultManager} from "src/interfaces/IBearnVaultManager.sol";

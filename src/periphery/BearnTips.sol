@@ -4,23 +4,11 @@ pragma solidity >=0.8.18;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-
-import {IRewardVaultFactory as IBeraVaultFactory} from "@berachain/contracts/pol/interfaces/IRewardVaultFactory.sol";
-
 import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
 import {BearnVault} from "src/BearnVault.sol";
-import {BearnCompoundingVault} from "src/BearnCompoundingVault.sol";
-import {BearnBGTEarnerVault} from "src/BearnBGTEarnerVault.sol";
 
-import {BearnCompoundingVaultDeployer} from "src/libraries/BearnCompoundingVaultDeployer.sol";
-import {BearnBGTEarnerVaultDeployer} from "src/libraries/BearnBGTEarnerVaultDeployer.sol";
-
-import {IBearnVaultManager} from "src/interfaces/IBearnVaultManager.sol";
-import {IBearnAuctionFactory} from "src/interfaces/IBearnAuctionFactory.sol";
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
-import {IBearnCompoundingVault} from "src/interfaces/IBearnCompoundingVault.sol";
 
 /// @title BearnTips
 /// @author bearn.sucks

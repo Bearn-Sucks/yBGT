@@ -9,9 +9,6 @@ import {WBERA} from "@berachain/contracts/WBERA.sol";
 import {BearnAuthorizer} from "@bearn/governance/contracts/BearnAuthorizer.sol";
 import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
-import {IBeraVault} from "src/interfaces/IBeraVault.sol";
-import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
-
 import {BearnExecutor} from "src/bases/BearnExecutor.sol";
 
 /// @title BearnVoter
