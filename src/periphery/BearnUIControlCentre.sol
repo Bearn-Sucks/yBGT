@@ -12,6 +12,7 @@ import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
 import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
+import {IBearnBGT} from "src/interfaces/IBearnBGT.sol";
 import {IStakedBearnBGT} from "src/interfaces/IStakedBearnBGT.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -34,7 +35,7 @@ contract BearnUIControlCentre is Authorized {
 
     ERC20 public immutable honey;
 
-    ERC20 public immutable yBGT;
+    IBearnBGT public immutable yBGT;
 
     IStakedBearnBGT public immutable styBGT;
 
@@ -55,7 +56,7 @@ contract BearnUIControlCentre is Authorized {
 
     constructor(address _authorizer, address _styBGT) Authorized(_authorizer) {
         styBGT = IStakedBearnBGT(_styBGT);
-        yBGT = ERC20(IStakedBearnBGT(_styBGT).yBGT());
+        yBGT = IBearnBGT(IStakedBearnBGT(_styBGT).yBGT());
         honey = ERC20(IStakedBearnBGT(_styBGT).honey());
     }
 
@@ -144,7 +145,10 @@ contract BearnUIControlCentre is Authorized {
         IBeraVault beraVault = IBeraVault(IBearnVault(bearnVault).beraVault());
 
         // fetch reward rate
-        uint256 rewardRate = beraVault.rewardRate();
+        uint256 rewardRate = yBGT.previewRedeem(
+            bearnVault,
+            beraVault.rewardRate()
+        );
 
         // fetch staking token amount
         uint256 stakedAmount = beraVault.totalSupply();
