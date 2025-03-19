@@ -236,6 +236,11 @@ contract BearnUIControlCentre is Authorized {
 
         address pool = kodiakFactory.getPool(token0, token1, 3000);
 
+        // return bera price if there is no pool
+        if (pool == address(0)) {
+            return beraPrice;
+        }
+
         (uint256 sqrtPriceX96, , , , , , ) = IUniswapV3Pool(pool).slot0();
 
         uint256 priceX96 = FixedPointMathLib.fullMulDiv(
