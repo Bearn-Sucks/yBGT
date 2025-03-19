@@ -3,6 +3,8 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-foundry";
 
 // Hardhat is only used to generate Typescript typings in this repo
+// this file is normally disabled (existing only as a template and not hardhat.config.ts)
+// since it can interfere with plugins and formatters otherwise
 
 const config: HardhatUserConfig = {
   solidity: "0.8.27",
