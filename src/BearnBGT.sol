@@ -7,6 +7,7 @@ import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20P
 
 import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
+import {IBGT} from "@berachain/contracts/pol/BGT.sol";
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
 import {IRewardVaultFactory as IBeraVaultFactory} from "@berachain/contracts/pol/interfaces/IRewardVaultFactory.sol";
 import {IBearnBGTFeeModule} from "src/interfaces/IBearnBGTFeeModule.sol";
@@ -118,6 +119,10 @@ contract BearnBGT is ERC20, ERC20Permit, Authorized {
         (outputAmount, ) = feeModule.previewRedeem(to, inputAmount);
 
         return outputAmount;
+    }
+
+    function maxRedeem() public view returns (uint256 maxAmount) {
+        return IBGT(bearnVoter.bgt()).unboostedBalanceOf(address(bearnVoter));
     }
 
     function setFeeModule(
