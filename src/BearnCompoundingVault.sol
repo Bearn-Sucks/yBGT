@@ -32,7 +32,12 @@ contract BearnCompoundingVault is BearnVault {
         // This claims the BGT to the Bearn Voter in return for yBGT
         yBGT.wrap(address(asset));
 
-        if (!Auction(auction()).isActive(address(yBGT))) {
+        Auction _auction = Auction(auction());
+
+        if (
+            address(_auction) == address(0) || // auction factory will deploy a new auction if one hasn't already been deployed
+            !Auction(auction()).isActive(address(yBGT))
+        ) {
             _kickAuction();
         }
 
