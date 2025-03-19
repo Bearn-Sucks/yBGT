@@ -169,7 +169,8 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         vm.startBroadcast(deployer);
 
         BearnUIControlCentre uiControl = new BearnUIControlCentre(
-            address(c.authorizer)
+            address(c.authorizer),
+            address(c.styBGT)
         );
 
         BearnTips bearnTips = new BearnTips(address(c.authorizer));

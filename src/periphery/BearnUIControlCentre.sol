@@ -6,15 +6,18 @@ import {IBeraWeightedPool} from "src/interfaces/IBeraWeightedPool.sol";
 import {IBexVault} from "src/interfaces/IBexVault.sol";
 
 import {IPythOracle} from "src/interfaces/IPythOracle.sol";
+import {IUniswapV3Factory} from "src/interfaces/IUniswapV3Factory.sol";
+import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
 
 import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
-import {BearnVault} from "src/BearnVault.sol";
-
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
+import {IStakedBearnBGT} from "src/interfaces/IStakedBearnBGT.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
+import {FixedPointMathLib} from "solady/src/utils/FixedPointMathLib.sol";
 
 /// @title BearnUIControlCentre
 /// @author bearn.sucks
@@ -29,11 +32,20 @@ contract BearnUIControlCentre is Authorized {
     ERC20 public constant wbera =
         ERC20(0x6969696969696969696969696969696969696969);
 
+    ERC20 public immutable honey;
+
+    ERC20 public immutable yBGT;
+
+    IStakedBearnBGT public immutable styBGT;
+
     IBexVault public constant bexVault =
         IBexVault(payable(0x4Be03f781C497A489E3cB0287833452cA9B9E80B));
 
     IPythOracle public constant pythOracle =
         IPythOracle(0x2880aB155794e7179c9eE2e38200202908C17B43);
+
+    IUniswapV3Factory public constant kodiakFactory =
+        IUniswapV3Factory(0xD84CBf0B02636E7f53dB9E5e45A616E05d710990);
 
     EnumerableSet.AddressSet whitelistedStakes;
 
@@ -41,7 +53,11 @@ contract BearnUIControlCentre is Authorized {
 
     mapping(address token => bytes32) public pythOracleIds;
 
-    constructor(address _authorizer) Authorized(_authorizer) {}
+    constructor(address _authorizer, address _styBGT) Authorized(_authorizer) {
+        styBGT = IStakedBearnBGT(_styBGT);
+        yBGT = ERC20(IStakedBearnBGT(_styBGT).yBGT());
+        honey = ERC20(IStakedBearnBGT(_styBGT).honey());
+    }
 
     function getAllWhitelistedStakes()
         external
@@ -105,6 +121,25 @@ contract BearnUIControlCentre is Authorized {
         pythOracleIds[token] = oracleId;
     }
 
+    function styBGTApr() external view returns (uint256) {
+        // fetch reward rate (using lastRewardRate as rewardRate)
+        uint256 rewardRate = styBGT.rewardData(address(honey)).lastRewardRate;
+
+        // fetch staking token amount
+        uint256 stakedAmount = styBGT.totalSupply();
+
+        // fetch prices
+        uint256 yBGTPrice = getYBGTPrice();
+
+        // calculate apr
+        uint256 tvl = yBGTPrice * stakedAmount;
+
+        // assuming $1 per HONEY, this is just for UI visualization so it's fine
+        uint256 rewardsPerYearUsd = (rewardRate * 1e18 * 365 days) / 1e18;
+
+        return (rewardsPerYearUsd * 1e18) / tvl; // apr in 1e18 (1e18=100%)
+    }
+
     function getApr(address bearnVault) external view returns (uint256) {
         IBeraVault beraVault = IBeraVault(IBearnVault(bearnVault).beraVault());
 
@@ -115,13 +150,13 @@ contract BearnUIControlCentre is Authorized {
         uint256 stakedAmount = beraVault.totalSupply();
 
         // fetch prices
-        uint256 beraPrice = getPythPrice(address(wbera));
+        uint256 yBGTPrice = getYBGTPrice();
         uint256 lpPrice = getBexLpPrice(beraVault.stakeToken());
 
         // calculate apr
         uint256 tvl = lpPrice * stakedAmount;
 
-        uint256 rewardsPerYearUsd = (rewardRate * beraPrice * 365 days) / 1e18;
+        uint256 rewardsPerYearUsd = (rewardRate * yBGTPrice * 365 days) / 1e18;
 
         return (rewardsPerYearUsd * 1e18) / tvl; // apr in 1e18 (1e18=100%)
     }
@@ -186,5 +221,36 @@ contract BearnUIControlCentre is Authorized {
             10 ** uint256(int256(-answer.expo));
 
         return pricePerToken;
+    }
+
+    // reports token price at 1e18, not normalized to token's decimals
+    function getYBGTPrice() public view returns (uint256) {
+        uint256 beraPrice = getPythPrice(address(wbera));
+
+        address token0 = address(wbera) > address(yBGT)
+            ? address(yBGT)
+            : address(wbera);
+        address token1 = address(wbera) > address(yBGT)
+            ? address(wbera)
+            : address(yBGT);
+
+        address pool = kodiakFactory.getPool(token0, token1, 3000);
+
+        (uint256 sqrtPriceX96, , , , , , ) = IUniswapV3Pool(pool).slot0();
+
+        uint256 priceX96 = FixedPointMathLib.fullMulDiv(
+            sqrtPriceX96,
+            sqrtPriceX96,
+            2 ** 96
+        );
+
+        // normalize it to 1e18 instead of X96
+        uint256 yBGTRatio = FixedPointMathLib.fullMulDiv(
+            priceX96,
+            1e18,
+            2 ** 96
+        );
+
+        return FixedPointMathLib.fullMulDiv(yBGTRatio, beraPrice, 1e18);
     }
 }
