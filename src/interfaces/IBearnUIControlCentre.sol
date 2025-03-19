@@ -2,21 +2,25 @@
 pragma solidity >=0.8.18;
 
 interface IBearnUIControlCentre {
+    error UnequalLengths();
+
+    event WhitelistChanged(address indexed stakingToken, bool state);
+
     function wbera() external view returns (address);
 
     function bexVault() external view returns (address);
 
     function pythOracle() external view returns (address);
 
+    function nameOverrides(address stake) external view returns (string memory);
+
+    function pythOracleIds(address stake) external view returns (bytes32);
+
     function getAllWhitelistedStakes() external view returns (address[] memory);
 
     function getAllWhitelistedStakesLength() external view returns (uint256);
 
     function getWhitelistedStake(uint256 index) external view returns (address);
-
-    function nameOverrides(address stake) external view returns (string memory);
-
-    function pythOracleIds(address stake) external view returns (bytes32);
 
     function adjustWhitelists(
         address[] calldata stakingTokens,

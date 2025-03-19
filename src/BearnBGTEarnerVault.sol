@@ -11,8 +11,6 @@ import {BearnVault} from "src/BearnVault.sol";
 contract BearnBGTEarnerVault is BearnVault {
     using SafeERC20 for IERC20;
 
-    uint256 public lastClaimedBlock;
-
     /* ========== ERRORS ========== */
 
     error AuctionNotDeployed();
@@ -21,7 +19,7 @@ contract BearnBGTEarnerVault is BearnVault {
 
     event SentToTreasury(address token, uint256 amount);
 
-    /* ========== MODIFIERS ========== */
+    uint256 public lastClaimedBlock;
 
     constructor(
         string memory _name,

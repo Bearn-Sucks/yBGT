@@ -10,11 +10,15 @@ interface IBearnVaultFactory {
 
     /* ========== EVENTS ========== */
 
+    event NewVaultManager(address newVaultManager);
+    event NewAuctionFactory(address newAuctionFactory);
     event NewVaults(
         address indexed stakingToken,
         address compoundingVault,
         address yBGTVault
     );
+
+    function beraVaultFactory() external view returns (address);
 
     function keeper() external view returns (address);
 
@@ -24,7 +28,15 @@ interface IBearnVaultFactory {
 
     function bearnAuctionFactory() external view returns (address);
 
-    function beraVaultFactory() external view returns (address);
+    function stakingToCompoundingVaults(
+        address stakingToken
+    ) external view returns (address);
+
+    function stakingToBGTEarnerVaults(
+        address stakingToken
+    ) external view returns (address);
+
+    function isBearnVault(address bearnVault) external view returns (bool);
 
     function getAllCompoundingVaultsLength() external view returns (uint256);
 
@@ -38,15 +50,9 @@ interface IBearnVaultFactory {
 
     function getAllBgtEarnerVaults() external view returns (address[] memory);
 
-    function stakingToCompoundingVaults(
-        address stakingToken
-    ) external view returns (address);
+    function setVaultManager(address _newBearnVaultManager) external;
 
-    function stakingToBGTEarnerVaults(
-        address stakingToken
-    ) external view returns (address);
-
-    function isBearnVault(address bearnVault) external view returns (bool);
+    function setAuctionFactory(address _newAuctionFactory) external;
 
     function createVaults(
         address stakingToken

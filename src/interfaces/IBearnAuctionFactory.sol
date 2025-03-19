@@ -14,6 +14,7 @@ interface IBearnAuctionFactory {
 
     error NotAuth();
     error InvalidAuctionType();
+    error AuctionExists();
 
     /* ========== EVENTS ========== */
 
@@ -26,6 +27,8 @@ interface IBearnAuctionFactory {
     function yBGT() external view returns (address);
 
     function bearnVaultFactory() external view returns (address);
+
+    function yearnAuctionFactory() external view returns (address);
 
     function wantToAuction(
         address want

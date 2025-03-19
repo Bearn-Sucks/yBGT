@@ -4,6 +4,8 @@ pragma solidity >=0.8.18;
 interface IBearnVoterManager {
     function MANAGER_ROLE() external view returns (bytes32);
 
+    function OPERATOR_ROLE() external view returns (bytes32);
+
     function bgt() external view returns (bytes32);
 
     function bgtStaker() external view returns (bytes32);

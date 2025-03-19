@@ -35,6 +35,8 @@ interface IBearnBGT is IERC20, IERC20Permit {
         uint256 amount
     ) external view returns (uint256 outputAmount);
 
+    function maxRedeem() external view returns (uint256 maxAmount);
+
     function setFeeModule(address newFeeModule) external;
 
     function setFeeRecipient(address newFeeRecipient) external;
