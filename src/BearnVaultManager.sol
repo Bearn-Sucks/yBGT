@@ -19,14 +19,18 @@ contract BearnVaultManager is BearnExecutor, Authorized {
     /* ========== ERRORS ========== */
 
     error NotFactory();
+    error MaxFee();
 
     /* ========== Events ========== */
 
     event UpdateEmergencyAdmin(address indexed newEmergencyAdmin);
+    event UpdatePerformanceFee(uint256 newPerformanceFee);
 
     address public immutable bearnVaultFactory;
     address public immutable bearnVoter;
     address public emergencyAdmin;
+
+    uint16 public performanceFee;
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -37,10 +41,12 @@ contract BearnVaultManager is BearnExecutor, Authorized {
         address _bearnVoter
     ) Authorized(_authorizer) {
         emergencyAdmin = _emergencyAdmin;
+        performanceFee = 500; // 5%
         bearnVaultFactory = _bearnVaultFactory;
         bearnVoter = _bearnVoter;
 
         emit UpdateEmergencyAdmin(_emergencyAdmin);
+        emit UpdatePerformanceFee(500);
     }
 
     function registerVault(address bearnVault) external {
@@ -55,8 +61,42 @@ contract BearnVaultManager is BearnExecutor, Authorized {
 
         IBearnVault(bearnVault).acceptManagement();
         address treasury = IBearnVoter(bearnVoter).treasury();
-        IBearnVault(bearnVault).setPerformanceFeeRecipient(treasury);
-        IBearnVault(bearnVault).setEmergencyAdmin(emergencyAdmin);
+        _syncVaultSettings(
+            bearnVault,
+            treasury,
+            performanceFee,
+            emergencyAdmin
+        );
+    }
+
+    function syncVaultSettings(
+        address[] calldata bearnVaults
+    ) external isAuthorized(MANAGER_ROLE) {
+        address _treasury = IBearnVoter(bearnVoter).treasury();
+        uint16 _performanceFee = performanceFee;
+        address _emergencyAdmin = emergencyAdmin;
+
+        uint256 length = bearnVaults.length;
+
+        for (uint256 i; i < length; i++) {
+            _syncVaultSettings(
+                bearnVaults[i],
+                _treasury,
+                _performanceFee,
+                _emergencyAdmin
+            );
+        }
+    }
+
+    function _syncVaultSettings(
+        address _bearnVault,
+        address _treasury,
+        uint16 _performanceFee,
+        address _emergencyAdmin
+    ) internal {
+        IBearnVault(_bearnVault).setPerformanceFeeRecipient(_treasury);
+        IBearnVault(_bearnVault).setPerformanceFee(_performanceFee);
+        IBearnVault(_bearnVault).setEmergencyAdmin(_emergencyAdmin);
     }
 
     function registerAuction(address auction) external {
@@ -74,13 +114,24 @@ contract BearnVaultManager is BearnExecutor, Authorized {
     }
 
     /// @dev This function only changes the emergency admin for new vaults,
-    /// txs should be queued via exeute() to update existing vaults
+    /// txs should be queued via syncVaultSettings() to update existing vaults
     /// @param _emergencyAdmin New emergency admin
     function setEmergencyAdmin(
         address _emergencyAdmin
     ) external isAuthorized(MANAGER_ROLE) {
         emergencyAdmin = _emergencyAdmin;
         emit UpdateEmergencyAdmin(_emergencyAdmin);
+    }
+
+    /// @dev This function only changes the performance fee for new vaults,
+    /// txs should be queued via syncVaultSettings() to update existing vaults
+    /// @param _performanceFee New performance fee
+    function setPerformanceFee(
+        uint256 _performanceFee
+    ) external isAuthorized(MANAGER_ROLE) {
+        require(_performanceFee < 50_000, MaxFee()); // MAX_FEE of vaults
+        performanceFee = uint16(_performanceFee);
+        emit UpdatePerformanceFee(_performanceFee);
     }
 
     /// @notice Makes it so the Manager can do arbitrary calls
