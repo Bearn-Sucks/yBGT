@@ -145,7 +145,7 @@ contract BearnUIControlCentre is Authorized {
         IBeraVault beraVault = IBeraVault(IBearnVault(bearnVault).beraVault());
 
         // fetch reward rate
-        uint256 rewardRate = yBGT.previewRedeem(
+        uint256 rewardRate = yBGT.previewWrap(
             bearnVault,
             beraVault.rewardRate()
         );
