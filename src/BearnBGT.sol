@@ -130,7 +130,7 @@ contract BearnBGT is ERC20, ERC20Permit, Authorized {
 
     function setFeeRecipient(
         address newFeeRecipient
-    ) external isAuthorized(MANAGER_ROLE) {
+    ) external isAuthorized(GOVERNANCE_ROLE) {
         treasury = newFeeRecipient;
 
         emit NewTreasury(newFeeRecipient);
