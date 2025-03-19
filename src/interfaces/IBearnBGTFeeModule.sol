@@ -27,10 +27,7 @@ interface IBearnBGTFeeModule {
 
     function redeemPaused() external view returns (bool);
 
-    function setBearnFactories(
-        address _bearnVaultFactory,
-        address _bearnAuctionFactory
-    ) external;
+    function setBearnFactory(address _bearnVaultFactory) external;
 
     function version() external pure returns (string memory);
 

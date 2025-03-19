@@ -203,10 +203,7 @@ abstract contract BearnBaseHelper is BeraHelper {
         bearnVoter.setVoterManager(address(bearnVoterManager));
 
         // Initialize Fee Module
-        feeModule.setBearnFactories(
-            address(bearnVaultFactory),
-            address(bearnAuctionFactory)
-        );
+        feeModule.setBearnFactory(address(bearnVaultFactory));
 
         // Pass ownership of Vault Factory
         bearnVaultFactory.setVaultManager(address(bearnVaultManager));

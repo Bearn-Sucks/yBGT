@@ -241,9 +241,8 @@ contract DeployScript is Script {
         );
 
         // Set Up Fee Module
-        deployedContracts.feeModule.setBearnFactories(
-            address(deployedContracts.vaultFactory),
-            address(deployedContracts.auctionFactory)
+        deployedContracts.feeModule.setBearnFactory(
+            address(deployedContracts.vaultFactory)
         );
 
         // Grant redeemer role to yBGT

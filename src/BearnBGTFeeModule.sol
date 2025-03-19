@@ -20,9 +20,8 @@ contract BearnBGTFeeModule is Authorized {
     event NewVaultRedeemFee(uint256 newRedeemFee);
     event RedeemPaused(bool);
 
-    uint256 public immutable BASIS;
+    uint256 public constant BASIS = 10_000;
     BearnVaultFactory public bearnVaultFactory;
-    address public bearnAuctionFactory;
     uint256 public wrapFee;
     uint256 public redeemFee;
     uint256 public vaultWrapFee;
@@ -37,8 +36,6 @@ contract BearnBGTFeeModule is Authorized {
         uint256 _vaultRedeemFee,
         bool _redeemPaused
     ) Authorized(_authorizer) {
-        BASIS = 10_000;
-
         wrapFee = _wrapFee;
         emit NewWrapFee(_wrapFee);
 
@@ -55,13 +52,11 @@ contract BearnBGTFeeModule is Authorized {
         emit RedeemPaused(_redeemPaused);
     }
 
-    function setBearnFactories(
-        address _bearnVaultFactory,
-        address _bearnAuctionFactory
+    function setBearnFactory(
+        address _bearnVaultFactory
     ) external isAuthorized(MANAGER_ROLE) {
         require(address(bearnVaultFactory) == address(0));
         bearnVaultFactory = BearnVaultFactory(_bearnVaultFactory);
-        bearnAuctionFactory = _bearnAuctionFactory;
     }
 
     function version() external pure returns (string memory) {
@@ -76,7 +71,7 @@ contract BearnBGTFeeModule is Authorized {
         uint256 inputAmount
     ) public view returns (uint256 outputAmount, uint256 fee) {
         uint256 _wrapFee = bearnVaultFactory.isBearnVault(to) ||
-            to == bearnAuctionFactory
+            to == address(bearnVaultFactory.bearnAuctionFactory())
             ? vaultWrapFee
             : wrapFee;
         fee = (inputAmount * _wrapFee) / BASIS;
@@ -104,7 +99,7 @@ contract BearnBGTFeeModule is Authorized {
         require(!redeemPaused, RedeemIsPaused());
 
         uint256 _redeemFee = bearnVaultFactory.isBearnVault(to) ||
-            to == bearnAuctionFactory
+            to == address(bearnVaultFactory.bearnAuctionFactory())
             ? vaultRedeemFee
             : redeemFee;
 
