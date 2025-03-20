@@ -11,7 +11,9 @@ import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
 
 import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
+import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
+import {IBearnAuctionFactory} from "src/interfaces/IBearnAuctionFactory.sol";
 import {IBearnBGT} from "src/interfaces/IBearnBGT.sol";
 import {IStakedBearnBGT} from "src/interfaces/IStakedBearnBGT.sol";
 
@@ -39,6 +41,9 @@ contract BearnUIControlCentre is Authorized {
 
     IStakedBearnBGT public immutable styBGT;
 
+    IBearnVaultFactory public immutable bearnVaultFactory;
+    IBearnAuctionFactory public immutable bearnAuctionFactory;
+
     IBexVault public constant bexVault =
         IBexVault(payable(0x4Be03f781C497A489E3cB0287833452cA9B9E80B));
 
@@ -54,10 +59,19 @@ contract BearnUIControlCentre is Authorized {
 
     mapping(address token => bytes32) public pythOracleIds;
 
-    constructor(address _authorizer, address _styBGT) Authorized(_authorizer) {
+    constructor(
+        address _authorizer,
+        address _styBGT,
+        address _bearnVaultFactory
+    ) Authorized(_authorizer) {
         styBGT = IStakedBearnBGT(_styBGT);
         yBGT = IBearnBGT(IStakedBearnBGT(_styBGT).yBGT());
         honey = ERC20(IStakedBearnBGT(_styBGT).honey());
+
+        bearnVaultFactory = IBearnVaultFactory(_bearnVaultFactory);
+        bearnAuctionFactory = IBearnAuctionFactory(
+            IBearnVaultFactory(_bearnVaultFactory).bearnAuctionFactory()
+        );
     }
 
     function getAllWhitelistedStakes()
@@ -145,22 +159,33 @@ contract BearnUIControlCentre is Authorized {
         IBeraVault beraVault = IBeraVault(IBearnVault(bearnVault).beraVault());
 
         // fetch reward rate
-        uint256 rewardRate = yBGT.previewWrap(
-            bearnVault,
-            beraVault.rewardRate()
-        );
+        uint256 rewardRate = beraVault.rewardRate();
+        rewardRate = yBGT.previewWrap(bearnVault, rewardRate);
 
         // fetch staking token amount
         uint256 stakedAmount = beraVault.totalSupply();
 
         // fetch prices
-        uint256 yBGTPrice = getYBGTPrice();
+        uint256 rewardPrice;
+        address staking = IBearnVault(bearnVault).stakingAsset();
+        // if the vault is a compounding vault auctioning wbera, use wbera price. Otherwise, use yBGT price
+        if (
+            bearnVaultFactory.stakingToCompoundingVaults(staking) == staking &&
+            bearnAuctionFactory.wantToAuctionType(staking) ==
+            IBearnAuctionFactory.AuctionType.wbera
+        ) {
+            rewardPrice = getPythPrice(address(wbera));
+        } else {
+            rewardPrice = getYBGTPrice();
+        }
+
         uint256 lpPrice = getBexLpPrice(beraVault.stakeToken());
 
         // calculate apr
         uint256 tvl = lpPrice * stakedAmount;
 
-        uint256 rewardsPerYearUsd = (rewardRate * yBGTPrice * 365 days) / 1e18;
+        uint256 rewardsPerYearUsd = (rewardRate * rewardPrice * 365 days) /
+            1e18;
 
         return (rewardsPerYearUsd * 1e18) / tvl; // apr in 1e18 (1e18=100%)
     }

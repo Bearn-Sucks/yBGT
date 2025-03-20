@@ -170,7 +170,8 @@ contract LocalUIDeployment is DeployScript, StdCheats {
 
         BearnUIControlCentre uiControl = new BearnUIControlCentre(
             address(c.authorizer),
-            address(c.styBGT)
+            address(c.styBGT),
+            address(c.vaultFactory)
         );
 
         BearnTips bearnTips = new BearnTips(address(c.authorizer));
