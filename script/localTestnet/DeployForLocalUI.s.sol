@@ -175,6 +175,7 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         );
 
         BearnTips bearnTips = new BearnTips(address(c.authorizer));
+        bearnTips.setTreasury(address(c.treasury));
 
         bool[] memory states = new bool[](stakes.length);
         for (uint256 i = 0; i < stakes.length; i++) {

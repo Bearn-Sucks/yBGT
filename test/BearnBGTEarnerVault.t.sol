@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import "forge-std/Test.sol";
 
@@ -128,7 +128,7 @@ contract BearnBGTEarnerVaultTest is BearnBaseHelper {
         beraVault.notifyRewardAmount(valData.pubkey, 1 ether);
 
         vm.warp(block.timestamp + 3);
-        vm.roll(block.number+1);
+        vm.roll(block.number + 1);
 
         uint256 balanceBefore = yBGT.balanceOf(user);
         uint256 balanceBefore2 = yBGT.balanceOf(user2);
@@ -143,7 +143,7 @@ contract BearnBGTEarnerVaultTest is BearnBaseHelper {
         bearnVault.getReward();
 
         vm.warp(block.timestamp + 86400);
-        vm.roll(block.number+1);
+        vm.roll(block.number + 1);
 
         // get user's rewards
         vm.prank(user);

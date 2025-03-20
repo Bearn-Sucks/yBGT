@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import {Script, console, stdJson} from "forge-std/Script.sol";
 
 import {BearnAuthorizer} from "@bearn/governance/contracts/BearnAuthorizer.sol";
+import {Treasury} from "@bearn/governance/contracts/Treasury.sol";
 
 import {BearnVaultFactory} from "src/BearnVaultFactory.sol";
 import {BearnAuctionFactory} from "src/BearnAuctionFactory.sol";
@@ -22,6 +23,7 @@ contract DeployScript is Script {
 
     address msig;
     address deployer;
+
     address treasury;
 
     address constant bgt = 0x656b95E550C07a9ffe548bd4085c72418Ceb1dba;
@@ -38,6 +40,7 @@ contract DeployScript is Script {
 
     struct DeployedContracts {
         BearnAuthorizer authorizer;
+        Treasury treasury;
         BearnVaultManager vaultManager;
         BearnVaultFactory vaultFactory;
         BearnVoter voter;
@@ -131,6 +134,11 @@ contract DeployScript is Script {
             "feeModule",
             address(deployedContracts.feeModule)
         );
+        json = vm.serializeAddress(
+            "EXPORTS",
+            "treasury",
+            address(deployedContracts.treasury)
+        );
 
         vm.writeJson(
             json,
@@ -167,9 +175,9 @@ contract DeployScript is Script {
 
         deployedContracts.feeModule = new BearnBGTFeeModule(
             address(deployedContracts.authorizer),
-            0,
-            0,
-            0,
+            500, // 5%
+            500,
+            500,
             0,
             false
         );
@@ -207,6 +215,12 @@ contract DeployScript is Script {
             address(deployedContracts.styBGT),
             address(deployedContracts.vaultManager),
             honey
+        );
+
+        deployedContracts.treasury = new Treasury(
+            address(deployedContracts.authorizer),
+            address(deployedContracts.yBGT),
+            address(deployedContracts.styBGT)
         );
 
         deployedContracts.voterManager = new BearnVoterManager(
@@ -267,6 +281,42 @@ contract DeployScript is Script {
         );
         deployedContracts.vaultManager.registerVault(
             address(deployedContracts.styBGTCompounder)
+        );
+
+        // Transfer treasury to the smart contract
+        bytes32 TREASURY_APPROVER_ROLE = deployedContracts
+            .treasury
+            .TREASURY_APPROVER_ROLE();
+        bytes32 TREASURY_RETRIEVER_ROLE = deployedContracts
+            .treasury
+            .TREASURY_RETRIEVER_ROLE();
+
+        if (
+            !deployedContracts.authorizer.hasRole(TREASURY_APPROVER_ROLE, msig)
+        ) {
+            deployedContracts.authorizer.grantRole(
+                TREASURY_APPROVER_ROLE,
+                msig
+            );
+        }
+        if (
+            !deployedContracts.authorizer.hasRole(TREASURY_RETRIEVER_ROLE, msig)
+        ) {
+            deployedContracts.authorizer.grantRole(
+                TREASURY_RETRIEVER_ROLE,
+                msig
+            );
+        }
+
+        deployedContracts.yBGT.setFeeRecipient(
+            address(deployedContracts.treasury)
+        );
+        address[] memory vaults = new address[](2);
+        vaults[0] = address(deployedContracts.styBGT);
+        vaults[1] = address(deployedContracts.styBGTCompounder);
+        deployedContracts.vaultManager.syncVaultSettings(vaults);
+        deployedContracts.voter.setTreasury(
+            address(deployedContracts.treasury)
         );
 
         vm.stopBroadcast();
