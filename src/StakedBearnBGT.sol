@@ -7,6 +7,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {TokenizedStaker} from "@yearn/tokenized-strategy-periphery/Bases/Staker/TokenizedStaker.sol";
 import {TokenizedStrategy} from "@yearn/tokenized-strategy/TokenizedStrategy.sol";
 
+import {IBGTStaker} from "@berachain/contracts/pol/BGTStaker.sol";
+
 import {IBearnVoter} from "src/interfaces/IBearnVoter.sol";
 import {IBearnVoterManager} from "src/interfaces/IBearnVoterManager.sol";
 import {IBearnVaultManager} from "src/interfaces/IBearnVaultManager.sol";
@@ -78,22 +80,43 @@ contract StakedBearnBGT is TokenizedStaker {
             // Call getReward() to transfer honey to this address
             uint256 rewardAmount = voterManager.getReward();
 
-            // transfer fees if needed
-            uint256 feeBps = TokenizedStrategy.performanceFee();
-            uint256 fees = (rewardAmount * feeBps) / 10_000;
-            if (fees > 0) {
-                rewardAmount -= fees;
-                honey.safeTransfer(
-                    TokenizedStrategy.performanceFeeRecipient(),
-                    fees
-                );
-            }
-
-            // Notify rewards if needed
             if (rewardAmount > 0) {
-                // notify the newly received honey
-                _notifyRewardAmount(address(honey), rewardAmount);
+                // transfer fees if needed
+                uint256 feeBps = TokenizedStrategy.performanceFee();
+                uint256 fees = (rewardAmount * feeBps) / 10_000;
+                if (fees > 0) {
+                    rewardAmount -= fees;
+                    honey.safeTransfer(
+                        TokenizedStrategy.performanceFeeRecipient(),
+                        fees
+                    );
+                }
+
+                // Notify rewards if needed
+                if (rewardAmount > 0) {
+                    // notify the newly received honey
+                    _notifyRewardAmount(address(honey), rewardAmount);
+                }
             }
         }
+    }
+
+    // Accounts for any unclaimed BGT rewards that would be claimed on next touch
+    function updatedEarned(
+        address _account
+    ) public view virtual returns (uint256) {
+        // This would be the amount of honey rewards pending
+        uint256 pendingHoneyAmount = IBGTStaker(
+            IBearnVoterManager(bearnVoter.voterManager()).bgtStaker()
+        ).earned(address(bearnVoter));
+
+        uint256 unclaimedRewards = (pendingHoneyAmount *
+            TokenizedStrategy.balanceOf(_account) *
+            PRECISION) /
+            _totalSupply() /
+            PRECISION;
+
+        // Return current earned plus new rewards
+        return super.earned(_account, address(honey)) + unclaimedRewards;
     }
 }

@@ -6,19 +6,19 @@ interface IBearnVoterManager {
 
     function OPERATOR_ROLE() external view returns (bytes32);
 
-    function bgt() external view returns (bytes32);
+    function bgt() external view returns (address);
 
-    function bgtStaker() external view returns (bytes32);
+    function bgtStaker() external view returns (address);
 
-    function wbera() external view returns (bytes32);
+    function wbera() external view returns (address);
 
-    function honey() external view returns (bytes32);
+    function honey() external view returns (address);
 
-    function beraGovernance() external view returns (bytes32);
+    function beraGovernance() external view returns (address);
 
-    function bearnVoter() external view returns (bytes32);
+    function bearnVoter() external view returns (address);
 
-    function styBGT() external view returns (bytes32);
+    function styBGT() external view returns (address);
 
     /* ========== VOTING ========== */
 

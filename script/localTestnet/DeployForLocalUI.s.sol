@@ -153,6 +153,11 @@ contract LocalUIDeployment is DeployScript, StdCheats {
             "feeModule",
             address(deployedContracts.feeModule)
         );
+        json = vm.serializeAddress(
+            "EXPORTS",
+            "treasury",
+            address(deployedContracts.treasury)
+        );
 
         vm.writeJson(
             json,

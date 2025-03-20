@@ -242,14 +242,16 @@ contract BearnVoterManager is Authorized {
         uint256 amount = abi.decode(_returndata, (uint256));
 
         // Send rewards to styBGT
-        data = abi.encodeCall(IERC20.transfer, (address(styBGT), amount));
-        bearnVoter.execute(
-            address(honey),
-            0,
-            data,
-            IBearnVoter.Operation.Call,
-            false
-        );
+        if (amount > 0) {
+            data = abi.encodeCall(IERC20.transfer, (address(styBGT), amount));
+            bearnVoter.execute(
+                address(honey),
+                0,
+                data,
+                IBearnVoter.Operation.Call,
+                false
+            );
+        }
 
         return amount;
     }
