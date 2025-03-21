@@ -76,7 +76,7 @@ contract BearnBGT is ERC20, ERC20Permit, Authorized {
             _mint(msg.sender, outputAmount);
         }
         if (feeAmount > 0) {
-            _mint(treasury, outputAmount);
+            _mint(treasury, feeAmount);
         }
 
         return outputAmount;
