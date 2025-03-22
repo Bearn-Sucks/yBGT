@@ -436,11 +436,9 @@ contract BearnUIControlCentre is Authorized {
         );
 
         // normalize it to 1e18 instead of X96
-        uint256 yBGTRatio = FixedPointMathLib.fullMulDiv(
-            priceX96,
-            1e18,
-            2 ** 96
-        );
+        uint256 yBGTRatio = address(yBGT) == token0
+            ? FixedPointMathLib.fullMulDiv(priceX96, 1e18, 2 ** 96)
+            : FixedPointMathLib.fullMulDiv(1e18, 2 ** 96, priceX96);
 
         return FixedPointMathLib.fullMulDiv(yBGTRatio, beraPrice, 1e18);
     }
