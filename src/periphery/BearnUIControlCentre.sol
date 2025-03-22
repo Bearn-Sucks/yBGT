@@ -16,6 +16,7 @@ import {IBearnVault} from "src/interfaces/IBearnVault.sol";
 import {IBearnAuctionFactory} from "src/interfaces/IBearnAuctionFactory.sol";
 import {IBearnBGT} from "src/interfaces/IBearnBGT.sol";
 import {IStakedBearnBGT} from "src/interfaces/IStakedBearnBGT.sol";
+import {IKodiakIsland} from "src/interfaces/IKodiakIsland.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -179,13 +180,34 @@ contract BearnUIControlCentre is Authorized {
             rewardPrice = getYBGTPrice();
         }
 
-        uint256 lpPrice = getBexLpPrice(beraVault.stakeToken());
+        bool priceFound;
+        bytes memory data;
+        uint256 lpPrice;
+        (priceFound, data) = address(this).staticcall(
+            abi.encodeCall(this.getBexLpPrice, (beraVault.stakeToken()))
+        );
+
+        if (priceFound) {
+            lpPrice = abi.decode(data, (uint256));
+        }
+
+        if (!priceFound || lpPrice == 0) {
+            (priceFound, data) = address(this).staticcall(
+                abi.encodeCall(
+                    this.getKodiakIslandPrice,
+                    (beraVault.stakeToken())
+                )
+            );
+            if (priceFound) {
+                lpPrice = abi.decode(data, (uint256));
+            }
+        }
 
         // calculate apr
         uint256 tvl = lpPrice * stakedAmount;
 
         uint256 rewardsPerYearUsd = (rewardRate * rewardPrice * 365 days) /
-            1e18;
+            1e18; // beravaults scale their rewardRate by 1e18
 
         return (rewardsPerYearUsd * 1e18) / tvl; // apr in 1e18 (1e18=100%)
     }
@@ -226,6 +248,58 @@ contract BearnUIControlCentre is Authorized {
                 (10 ** decimals)) * 1e18) /
                 totalSupply /
                 weights[i];
+
+            return pricePerLpToken;
+        }
+
+        // if no oracle found, return 0
+        return 0;
+    }
+
+    function getKodiakIslandPrice(
+        address kodiakIsland
+    ) public view returns (uint256) {
+        IKodiakIsland _kodiakIsland = IKodiakIsland(kodiakIsland);
+
+        // get tokens and ratio
+        address[] memory tokens = new address[](2);
+        tokens[0] = _kodiakIsland.token0();
+        tokens[1] = _kodiakIsland.token1();
+
+        uint256 sqrtPriceX96 = _kodiakIsland.getAvgPrice(1);
+        uint256 priceX96 = FixedPointMathLib.fullMulDiv(
+            sqrtPriceX96,
+            sqrtPriceX96,
+            2 ** 96
+        );
+
+        // convert token amounts to their equivalent in token0 and token1 for easier price calcs
+        uint256[] memory amounts = new uint256[](2);
+        (amounts[0], amounts[1]) = _kodiakIsland.getUnderlyingBalances();
+        uint256[] memory equivalentAmounts = new uint256[](2);
+        equivalentAmounts[0] =
+            amounts[0] +
+            FixedPointMathLib.fullMulDiv(amounts[1], 2 ** 96, priceX96);
+        equivalentAmounts[1] =
+            amounts[1] +
+            FixedPointMathLib.fullMulDiv(amounts[0], priceX96, 2 ** 96);
+
+        uint256 totalSupply = _kodiakIsland.totalSupply();
+
+        // loop through tokens to find one with an oracle
+        for (uint256 i; i < tokens.length; i++) {
+            uint256 pricePerToken = getPythPrice(tokens[i]);
+
+            // skip if there is no oracle for this token
+            if (pricePerToken == 0) {
+                continue;
+            }
+            uint256 decimals = ERC20(tokens[i]).decimals();
+
+            // can return price for the whole LP based on weightings
+            uint256 pricePerLpToken = (((equivalentAmounts[i] *
+                pricePerToken *
+                1e18) / (10 ** decimals)) * 1e18) / totalSupply;
 
             return pricePerLpToken;
         }

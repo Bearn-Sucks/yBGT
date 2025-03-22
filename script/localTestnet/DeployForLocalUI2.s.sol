@@ -94,80 +94,7 @@ contract LocalUIDeployment is DeployScript, StdCheats {
     }
 
     function run() public override {
-        DeployedContracts memory deployedContracts = deploy();
-        deployUIContracts(deployedContracts);
-        deployVaults(deployedContracts);
-
-        ////////////////////////
-        /// export addresses ///
-        ////////////////////////
-
-        string memory json;
-        json = vm.serializeAddress(
-            "EXPORTS",
-            "authorizer",
-            address(deployedContracts.authorizer)
-        );
-        json = vm.serializeAddress(
-            "EXPORTS",
-            "vaultManager",
-            address(deployedContracts.vaultManager)
-        );
-        json = vm.serializeAddress(
-            "EXPORTS",
-            "vaultFactory",
-            address(deployedContracts.vaultFactory)
-        );
-        json = vm.serializeAddress(
-            "EXPORTS",
-            "voter",
-            address(deployedContracts.voter)
-        );
-        json = vm.serializeAddress(
-            "EXPORTS",
-            "voterManager",
-            address(deployedContracts.voterManager)
-        );
-        json = vm.serializeAddress(
-            "EXPORTS",
-            "auctionFactory",
-            address(deployedContracts.auctionFactory)
-        );
-        json = vm.serializeAddress(
-            "EXPORTS",
-            "yBGT",
-            address(deployedContracts.yBGT)
-        );
-        json = vm.serializeAddress(
-            "EXPORTS",
-            "styBGT",
-            address(deployedContracts.styBGT)
-        );
-        json = vm.serializeAddress(
-            "EXPORTS",
-            "styBGTCompounder",
-            address(deployedContracts.styBGTCompounder)
-        );
-        json = vm.serializeAddress(
-            "EXPORTS",
-            "feeModule",
-            address(deployedContracts.feeModule)
-        );
-        json = vm.serializeAddress(
-            "EXPORTS",
-            "treasury",
-            address(deployedContracts.treasury)
-        );
-
-        vm.writeJson(
-            json,
-            string.concat(
-                vm.projectRoot(),
-                "/script/output/localUI/localUI-",
-                vm.toString(block.timestamp),
-                ".json"
-            )
-        );
+        BearnUIControlCentre uiControl = deployUIControl(existingDeployment);
     }
 
     function deployUIContracts(DeployedContracts memory c) public {
@@ -221,7 +148,9 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         );
     }
 
-    function deployUIControl(DeployedContracts memory c) public {
+    function deployUIControl(
+        DeployedContracts memory c
+    ) public returns (BearnUIControlCentre) {
         vm.startBroadcast(deployer);
 
         BearnUIControlCentre uiControl = new BearnUIControlCentre(
@@ -265,6 +194,8 @@ contract LocalUIDeployment is DeployScript, StdCheats {
                 ".json"
             )
         );
+
+        return uiControl;
     }
 
     function deployVaults(DeployedContracts memory c) public {

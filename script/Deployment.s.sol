@@ -52,6 +52,8 @@ contract DeployScript is Script {
         BearnBGTFeeModule feeModule;
     }
 
+    DeployedContracts existingDeployment;
+
     function setUp() public virtual {
         // Read msig address from configs
         string memory root = vm.projectRoot();
@@ -74,6 +76,44 @@ contract DeployScript is Script {
         } else {
             treasury = msig;
         }
+
+        string memory existingAddresses = vm.readFile(
+            string.concat(root, "/script/output/addresses.json")
+        );
+
+        existingDeployment.authorizer = BearnAuthorizer(
+            existingAddresses.readAddress(".authorizer")
+        );
+        existingDeployment.treasury = Treasury(
+            payable(existingAddresses.readAddress(".treasury"))
+        );
+        existingDeployment.vaultManager = BearnVaultManager(
+            existingAddresses.readAddress(".vaultManager")
+        );
+        existingDeployment.vaultFactory = BearnVaultFactory(
+            existingAddresses.readAddress(".vaultFactory")
+        );
+        existingDeployment.voter = BearnVoter(
+            payable(existingAddresses.readAddress(".voter"))
+        );
+        existingDeployment.voterManager = BearnVoterManager(
+            existingAddresses.readAddress(".voterManager")
+        );
+        existingDeployment.auctionFactory = BearnAuctionFactory(
+            existingAddresses.readAddress(".auctionFactory")
+        );
+        existingDeployment.yBGT = BearnBGT(
+            existingAddresses.readAddress(".yBGT")
+        );
+        existingDeployment.styBGT = StakedBearnBGT(
+            existingAddresses.readAddress(".styBGT")
+        );
+        existingDeployment.styBGTCompounder = StakedBearnBGTCompounder(
+            existingAddresses.readAddress(".styBGTCompounder")
+        );
+        existingDeployment.feeModule = BearnBGTFeeModule(
+            existingAddresses.readAddress(".feeModule")
+        );
     }
 
     function run() public virtual {
