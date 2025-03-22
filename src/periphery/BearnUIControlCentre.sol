@@ -150,7 +150,7 @@ contract BearnUIControlCentre is Authorized {
         uint256 tvl = yBGTPrice * stakedAmount;
 
         // assuming $1 per HONEY, this is just for UI visualization so it's fine
-        uint256 rewardsPerYearUsd = (rewardRate * 1e18 * 365 days) / 1e18;
+        uint256 rewardsPerYearUsd = rewardRate * 1e18 * 365 days;
 
         return (rewardsPerYearUsd * 1e18) / tvl; // apr in 1e18 (1e18=100%)
     }
