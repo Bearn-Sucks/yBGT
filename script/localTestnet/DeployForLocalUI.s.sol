@@ -30,13 +30,16 @@ contract LocalUIDeployment is DeployScript, StdCheats {
     using stdJson for string;
 
     address[] internal stakes;
+    address[] internal tokensWithNameOverrides;
     string[] internal nameOverrides;
     address[] internal tokensWithOracles;
     bytes32[] internal oracleIds;
+    address[] internal overrideTokens;
+    address[] internal overrideTokenDestinations;
 
     bool internal testing;
 
-    function setUp() public override {
+    function setUp() public virtual override {
         testing = vm.envBool("TESTING");
 
         // reset fork
@@ -86,14 +89,21 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         );
 
         stakes = configs.readAddressArray(".tokens");
+        tokensWithNameOverrides = configs.readAddressArray(
+            ".tokensWithNameOverrides"
+        );
         nameOverrides = configs.readStringArray(".names");
         tokensWithOracles = configs.readAddressArray(".tokensWithOracles");
         oracleIds = configs.readBytes32Array(".oracleIds");
+        overrideTokens = configs.readAddressArray(".overrideTokens");
+        overrideTokenDestinations = configs.readAddressArray(
+            ".overrideTokenDestinations"
+        );
 
         super.setUp();
     }
 
-    function run() public override {
+    function run() public virtual override {
         DeployedContracts memory deployedContracts = deploy();
         deployUIContracts(deployedContracts);
         deployVaults(deployedContracts);
@@ -171,36 +181,8 @@ contract LocalUIDeployment is DeployScript, StdCheats {
     }
 
     function deployUIContracts(DeployedContracts memory c) public {
-        vm.startBroadcast(deployer);
-
-        BearnUIControlCentre uiControl = new BearnUIControlCentre(
-            address(c.authorizer),
-            address(c.styBGT),
-            address(c.vaultFactory)
-        );
-
-        BearnTips bearnTips = new BearnTips(address(c.authorizer));
-        bearnTips.setTreasury(address(c.treasury));
-
-        bool[] memory states = new bool[](stakes.length);
-        for (uint256 i = 0; i < stakes.length; i++) {
-            states[i] = true;
-        }
-
-        // whitelist stakes
-        uiControl.adjustWhitelists(stakes, states);
-
-        // override token names
-        for (uint256 i = 0; i < stakes.length; i++) {
-            uiControl.setNameOverride(stakes[i], nameOverrides[i]);
-        }
-
-        // record oracle IDs
-        for (uint256 i = 0; i < tokensWithOracles.length; i++) {
-            uiControl.setPythOracleId(tokensWithOracles[i], oracleIds[i]);
-        }
-
-        vm.stopBroadcast();
+        BearnUIControlCentre uiControl = deployUIControl(c);
+        BearnTips bearnTips = deployBearnTips(c);
 
         string memory json = vm.serializeAddress(
             "EXPORTS",
@@ -221,7 +203,9 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         );
     }
 
-    function deployUIControl(DeployedContracts memory c) public {
+    function deployUIControl(
+        DeployedContracts memory c
+    ) public returns (BearnUIControlCentre) {
         vm.startBroadcast(deployer);
 
         BearnUIControlCentre uiControl = new BearnUIControlCentre(
@@ -239,8 +223,27 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         uiControl.adjustWhitelists(stakes, states);
 
         // override token names
+        require(
+            tokensWithNameOverrides.length == nameOverrides.length,
+            "override names length mismatch"
+        );
         for (uint256 i = 0; i < stakes.length; i++) {
-            uiControl.setNameOverride(stakes[i], nameOverrides[i]);
+            uiControl.setNameOverride(
+                tokensWithNameOverrides[i],
+                nameOverrides[i]
+            );
+        }
+
+        // override token addresses
+        require(
+            overrideTokens.length == overrideTokenDestinations.length,
+            "override addresses length mismatch"
+        );
+        for (uint256 i = 0; i < overrideTokens.length; i++) {
+            uiControl.setTokenAddressOverride(
+                overrideTokens[i],
+                overrideTokenDestinations[i]
+            );
         }
 
         // record oracle IDs
@@ -265,6 +268,19 @@ contract LocalUIDeployment is DeployScript, StdCheats {
                 ".json"
             )
         );
+
+        return uiControl;
+    }
+
+    function deployBearnTips(
+        DeployedContracts memory c
+    ) public returns (BearnTips) {
+        vm.startBroadcast(deployer);
+        BearnTips bearnTips = new BearnTips(address(c.authorizer));
+        bearnTips.setTreasury(address(c.treasury));
+        vm.stopBroadcast();
+
+        return bearnTips;
     }
 
     function deployVaults(DeployedContracts memory c) public {
@@ -273,6 +289,11 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         for (uint i = 0; i < stakes.length; i++) {
             address stakeToken = stakes[i];
             console.log("stakeToken", stakeToken);
+
+            if(c.vaultFactory.stakingToCompoundingVaults(stakeToken)!=address(0)){
+                continue;
+            }
+
             IBeraVault beraVault = IBeraVault(
                 IBeraVaultFactory(beraVaultFactory).getVault(stakeToken)
             );

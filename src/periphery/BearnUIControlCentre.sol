@@ -17,6 +17,8 @@ import {IBearnAuctionFactory} from "src/interfaces/IBearnAuctionFactory.sol";
 import {IBearnBGT} from "src/interfaces/IBearnBGT.sol";
 import {IStakedBearnBGT} from "src/interfaces/IStakedBearnBGT.sol";
 import {IKodiakIsland} from "src/interfaces/IKodiakIsland.sol";
+import {IUniswapV2Pair} from "src/interfaces/IUniswapV2Pair.sol";
+import {IHypervisor} from "src/interfaces/IHypervisor.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -61,6 +63,8 @@ contract BearnUIControlCentre is Authorized {
     mapping(address stake => string) public nameOverrides;
 
     mapping(address token => bytes32) public pythOracleIds;
+
+    mapping(address token => address) public tokenAddressOverrides;
 
     constructor(
         address _authorizer,
@@ -127,9 +131,25 @@ contract BearnUIControlCentre is Authorized {
 
     function setNameOverride(
         address stakingToken,
-        string memory nameOverride
+        string memory name
     ) external isAuthorized(MANAGER_ROLE) {
-        nameOverrides[stakingToken] = nameOverride;
+        nameOverrides[stakingToken] = name;
+    }
+
+    function setNameOverrides(
+        address[] calldata stakingTokens,
+        string[] calldata names
+    ) external isAuthorized(MANAGER_ROLE) {
+        for (uint256 i; i < stakingTokens.length; i++) {
+            nameOverrides[stakingTokens[i]] = names[i];
+        }
+    }
+
+    function setTokenAddressOverride(
+        address stakingToken,
+        address destinationAddress
+    ) external isAuthorized(MANAGER_ROLE) {
+        tokenAddressOverrides[stakingToken] = destinationAddress;
     }
 
     function setPythOracleId(
@@ -173,7 +193,8 @@ contract BearnUIControlCentre is Authorized {
         address staking = IBearnVault(bearnVault).stakingAsset();
         // if the vault is a compounding vault auctioning wbera, use wbera price. Otherwise, use yBGT price
         if (
-            bearnVaultFactory.stakingToCompoundingVaults(staking) == staking &&
+            bearnVaultFactory.stakingToCompoundingVaults(staking) ==
+            bearnVault &&
             bearnAuctionFactory.wantToAuctionType(staking) ==
             IBearnAuctionFactory.AuctionType.wbera
         ) {
@@ -194,6 +215,11 @@ contract BearnUIControlCentre is Authorized {
     }
 
     function getStakePrice(address stakeToken) public view returns (uint256) {
+        // check if there is an address override for the stakeToken
+        if (tokenAddressOverrides[stakeToken] != address(0)) {
+            stakeToken = tokenAddressOverrides[stakeToken];
+        }
+
         // return yBGT price if stakeToken is yBGT
         if (stakeToken == address(yBGT)) {
             return getYBGTPrice();
@@ -246,6 +272,30 @@ contract BearnUIControlCentre is Authorized {
             }
         }
 
+        // getKodiakV2Price
+        (priceFound, data) = address(this).staticcall(
+            abi.encodeCall(this.getKodiakV2Price, (stakeToken))
+        );
+
+        if (priceFound) {
+            price = abi.decode(data, (uint256));
+            if (price > 0) {
+                return price;
+            }
+        }
+
+        // getHypervisorPrice
+        (priceFound, data) = address(this).staticcall(
+            abi.encodeCall(this.getHypervisorPrice, (stakeToken))
+        );
+
+        if (priceFound) {
+            price = abi.decode(data, (uint256));
+            if (price > 0) {
+                return price;
+            }
+        }
+
         return 0;
     }
 
@@ -261,10 +311,18 @@ contract BearnUIControlCentre is Authorized {
         ) {
             weights = _weights;
         } catch {
-            // assume stable pool with equal weighting if failed
+            // assume stable pool and calculate equivalent amounts if failed
             weights = new uint256[](tokens.length);
+            uint256[] memory decimals = new uint256[](tokens.length);
+            uint256 totalAmount;
             for (uint256 i = 0; i < tokens.length; i++) {
-                weights[i] = 1e18 / tokens.length;
+                weights[i] = 1e18; // set weights to 100% each, but use an equivalent total amount for each token
+                decimals[i] = ERC20(tokens[i]).decimals();
+                totalAmount += (amounts[i] * 1e18) / (10 ** decimals[i]);
+            }
+
+            for (uint256 i = 0; i < tokens.length; i++) {
+                amounts[i] = (totalAmount * (10 ** decimals[i])) / 1e18;
             }
         }
 
@@ -391,8 +449,92 @@ contract BearnUIControlCentre is Authorized {
         return 0;
     }
 
+    function getKodiakV2Price(
+        address kodiakV2Pair
+    ) public view returns (uint256) {
+        IUniswapV2Pair _kodiakPair = IUniswapV2Pair(kodiakV2Pair);
+
+        // make sure it's a UniswapV2 Pair
+        _kodiakPair.kLast();
+
+        // get tokens and ratio
+        address[] memory tokens = new address[](2);
+        tokens[0] = _kodiakPair.token0();
+        tokens[1] = _kodiakPair.token1();
+
+        // convert token amounts to their equivalent in token0 and token1 for easier price calcs
+        uint256[] memory amounts = new uint256[](2);
+        (amounts[0], amounts[1], ) = _kodiakPair.getReserves();
+
+        uint256 totalSupply = _kodiakPair.totalSupply();
+
+        // loop through tokens to find one with an oracle
+        for (uint256 i; i < tokens.length; i++) {
+            uint256 pricePerToken = getPythPrice(tokens[i]);
+
+            // skip if there is no oracle for this token
+            if (pricePerToken == 0) {
+                continue;
+            }
+            uint256 decimals = ERC20(tokens[i]).decimals();
+
+            // can return price for the whole LP based on weightings
+            // assuming the pool is balanced 50/50 since it's uniV2
+            uint256 pricePerLpToken = ((((amounts[i] * pricePerToken * 1e18) /
+                (10 ** decimals)) * 1e18) / totalSupply) * 2;
+
+            return pricePerLpToken;
+        }
+
+        // if no oracle found, return 0
+        return 0;
+    }
+
+    function getHypervisorPrice(
+        address hypervisor
+    ) public view returns (uint256) {
+        IHypervisor _hypervisor = IHypervisor(hypervisor);
+
+        // get tokens and ratio
+        address[] memory tokens = new address[](2);
+        tokens[0] = _hypervisor.token0();
+        tokens[1] = _hypervisor.token1();
+
+        // convert token amounts to their equivalent in token0 and token1 for easier price calcs
+        uint256[] memory amounts = new uint256[](2);
+        (amounts[0], amounts[1]) = _hypervisor.getTotalAmounts();
+
+        uint256 totalSupply = _hypervisor.totalSupply();
+
+        // loop through tokens to find one with an oracle
+        for (uint256 i; i < tokens.length; i++) {
+            uint256 pricePerToken = getPythPrice(tokens[i]);
+
+            // skip if there is no oracle for this token
+            if (pricePerToken == 0) {
+                continue;
+            }
+            uint256 decimals = ERC20(tokens[i]).decimals();
+
+            // can return price for the whole LP based on weightings
+            // assuming the pool is balanced 50/50 since it's automatically rebalanced
+            uint256 pricePerLpToken = ((((amounts[i] * pricePerToken * 1e18) /
+                (10 ** decimals)) * 1e18) / totalSupply) * 2;
+
+            return pricePerLpToken;
+        }
+
+        // if no oracle found, return 0
+        return 0;
+    }
+
     // reports token price at 1e18, not normalized to token's decimals
     function getPythPrice(address token) public view returns (uint256) {
+        // check if there is an address override for the token
+        if (tokenAddressOverrides[token] != address(0)) {
+            token = tokenAddressOverrides[token];
+        }
+
         bytes32 oracleId = pythOracleIds[token];
 
         // return 0 if there is no oracle registered for this token
