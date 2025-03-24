@@ -211,7 +211,7 @@ contract BearnUIControlCentre is Authorized {
         uint256 rewardsPerYearUsd = (rewardRate * rewardPrice * 365 days) /
             1e18; // beravaults scale their rewardRate by 1e18
 
-        return (rewardsPerYearUsd * 1e18) / tvl; // apr in 1e18 (1e18=100%)
+        return tvl > 0 ? (rewardsPerYearUsd * 1e18) / tvl : 0; // apr in 1e18 (1e18=100%)
     }
 
     function getStakePrice(address stakeToken) public view returns (uint256) {
@@ -311,18 +311,28 @@ contract BearnUIControlCentre is Authorized {
         ) {
             weights = _weights;
         } catch {
-            // assume stable pool and calculate equivalent amounts if failed
+            // assume stable pool and calculate equivalent weights if failed
             weights = new uint256[](tokens.length);
             uint256[] memory decimals = new uint256[](tokens.length);
+
+            // calculate total token amounts by normalizing every token to 18 decimals
             uint256 totalAmount;
             for (uint256 i = 0; i < tokens.length; i++) {
-                weights[i] = 1e18; // set weights to 100% each, but use an equivalent total amount for each token
+                // check if it's a balancer pool, skip if it is
+                (bool isBalancerPool, ) = address(tokens[i]).staticcall(
+                    abi.encodeWithSignature("getPoolId()")
+                );
+                if (isBalancerPool) {
+                    continue;
+                }
                 decimals[i] = ERC20(tokens[i]).decimals();
-                totalAmount += (amounts[i] * 1e18) / (10 ** decimals[i]);
+                weights[i] = (amounts[i] * 1e18) / (10 ** decimals[i]);
+                totalAmount += weights[i];
             }
 
+            // normalize the weights to 1e18
             for (uint256 i = 0; i < tokens.length; i++) {
-                amounts[i] = (totalAmount * (10 ** decimals[i])) / 1e18;
+                weights[i] = (weights[i] * 1e18) / totalAmount;
             }
         }
 
@@ -365,10 +375,28 @@ contract BearnUIControlCentre is Authorized {
         ) {
             weights = _weights;
         } catch {
-            // assume stable pool with equal weighting if failed
+            // assume stable pool and calculate equivalent weights if failed
             weights = new uint256[](tokens.length);
+            uint256[] memory decimals = new uint256[](tokens.length);
+
+            // calculate total token amounts by normalizing every token to 18 decimals
+            uint256 totalAmount;
             for (uint256 i = 0; i < tokens.length; i++) {
-                weights[i] = 1e18 / tokens.length;
+                // check if it's a balancer pool, skip if it is
+                (bool isBalancerPool, ) = address(tokens[i]).staticcall(
+                    abi.encodeWithSignature("getPoolId()")
+                );
+                if (isBalancerPool) {
+                    continue;
+                }
+                decimals[i] = ERC20(tokens[i]).decimals();
+                weights[i] = (amounts[i] * 1e18) / (10 ** decimals[i]);
+                totalAmount += weights[i];
+            }
+
+            // normalize the weights to 1e18
+            for (uint256 i = 0; i < tokens.length; i++) {
+                weights[i] = (weights[i] * 1e18) / totalAmount;
             }
         }
 
@@ -438,9 +466,10 @@ contract BearnUIControlCentre is Authorized {
             uint256 decimals = ERC20(tokens[i]).decimals();
 
             // can return price for the whole LP based on weightings
-            uint256 pricePerLpToken = (((equivalentAmounts[i] *
-                pricePerToken *
-                1e18) / (10 ** decimals)) * 1e18) / totalSupply;
+            uint256 pricePerLpToken = (
+                ((equivalentAmounts[i] * pricePerToken * 1e18) /
+                    (10 ** decimals))
+            ) / totalSupply;
 
             return pricePerLpToken;
         }
@@ -480,8 +509,9 @@ contract BearnUIControlCentre is Authorized {
 
             // can return price for the whole LP based on weightings
             // assuming the pool is balanced 50/50 since it's uniV2
-            uint256 pricePerLpToken = ((((amounts[i] * pricePerToken * 1e18) /
-                (10 ** decimals)) * 1e18) / totalSupply) * 2;
+            uint256 pricePerLpToken = ((
+                ((amounts[i] * pricePerToken * 1e18) / (10 ** decimals))
+            ) / totalSupply) * 2;
 
             return pricePerLpToken;
         }
@@ -518,8 +548,9 @@ contract BearnUIControlCentre is Authorized {
 
             // can return price for the whole LP based on weightings
             // assuming the pool is balanced 50/50 since it's automatically rebalanced
-            uint256 pricePerLpToken = ((((amounts[i] * pricePerToken * 1e18) /
-                (10 ** decimals)) * 1e18) / totalSupply) * 2;
+            uint256 pricePerLpToken = ((
+                ((amounts[i] * pricePerToken * 1e18) / (10 ** decimals))
+            ) / totalSupply) * 2;
 
             return pricePerLpToken;
         }

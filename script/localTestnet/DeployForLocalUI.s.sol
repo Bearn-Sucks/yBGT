@@ -227,12 +227,13 @@ contract LocalUIDeployment is DeployScript, StdCheats {
             tokensWithNameOverrides.length == nameOverrides.length,
             "override names length mismatch"
         );
-        for (uint256 i = 0; i < stakes.length; i++) {
-            uiControl.setNameOverride(
-                tokensWithNameOverrides[i],
-                nameOverrides[i]
-            );
-        }
+        // for (uint256 i = 0; i < stakes.length; i++) {
+        //     uiControl.setNameOverride(
+        //         tokensWithNameOverrides[i],
+        //         nameOverrides[i]
+        //     );
+        // }
+        uiControl.setNameOverrides(tokensWithNameOverrides, nameOverrides);
 
         // override token addresses
         require(
@@ -290,13 +291,23 @@ contract LocalUIDeployment is DeployScript, StdCheats {
             address stakeToken = stakes[i];
             console.log("stakeToken", stakeToken);
 
-            if(c.vaultFactory.stakingToCompoundingVaults(stakeToken)!=address(0)){
+            // skip if a bearn vault is already made
+            if (
+                c.vaultFactory.stakingToCompoundingVaults(stakeToken) !=
+                address(0)
+            ) {
                 continue;
             }
 
             IBeraVault beraVault = IBeraVault(
                 IBeraVaultFactory(beraVaultFactory).getVault(stakeToken)
             );
+
+            // log and skip if a bera vault doesn't exist for the staking token
+            if (address(beraVault) == address(0)) {
+                console.log("no bera vault");
+                continue;
+            }
 
             c.vaultFactory.createVaults(stakeToken);
 
