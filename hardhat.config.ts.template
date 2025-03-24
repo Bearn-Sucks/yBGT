@@ -7,7 +7,7 @@ import "@nomicfoundation/hardhat-foundry";
 // since it can interfere with plugins and formatters otherwise
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.27",
+  solidity: "0.8.28",
 
   paths: {
     sources: "src/interfaces", // only need the interfaces
