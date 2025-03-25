@@ -8,6 +8,10 @@ import {IBGT} from "@berachain/contracts/pol/BGT.sol";
 import {IBGTStaker} from "@berachain/contracts/pol/BGTStaker.sol";
 import {WBERA} from "@berachain/contracts/WBERA.sol";
 
+import {IStakedBearnBGT} from "src/interfaces/IStakedBearnBGT.sol";
+import {Auction} from "@yearn/tokenized-strategy-periphery/Auctions/Auction.sol";
+import {AuctionFactory} from "@yearn/tokenized-strategy-periphery/Auctions/AuctionFactory.sol";
+
 import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
 import {IBearnVoter} from "src/interfaces/IBearnVoter.sol";
@@ -25,7 +29,9 @@ contract BearnVoterManager is Authorized {
     IBeraGovenor public immutable beraGovernance;
 
     IBearnVoter public immutable bearnVoter;
-    address public immutable styBGT;
+    IStakedBearnBGT public immutable styBGT;
+
+    Auction public immutable auction;
 
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
@@ -45,9 +51,21 @@ contract BearnVoterManager is Authorized {
         wbera = WBERA(payable(_wbera));
         honey = IERC20(_honey);
         beraGovernance = IBeraGovenor(_beraGovernance);
-        styBGT = _styBGT;
+        styBGT = IStakedBearnBGT(_styBGT);
 
         bearnVoter = IBearnVoter(_bearnVoter);
+
+        // Use Yearn AuctionFactory to deploy an Auction
+        auction = Auction(
+            AuctionFactory(0xCfA510188884F199fcC6e750764FAAbE6e56ec40)
+                .createNewAuction(
+                    address(honey),
+                    address(this),
+                    styBGT.management(),
+                    1 days,
+                    5_000
+                )
+        );
     }
 
     /* ========== VOTING ========== */
@@ -231,7 +249,7 @@ contract BearnVoterManager is Authorized {
         // Claim rewards
         bytes memory data = abi.encodeCall(bgtStaker.getReward, ());
 
-        (, bytes memory _returndata) = bearnVoter.execute(
+        bearnVoter.execute(
             address(bgtStaker),
             0,
             data,
@@ -239,7 +257,8 @@ contract BearnVoterManager is Authorized {
             false
         );
 
-        uint256 amount = abi.decode(_returndata, (uint256));
+        // Transfer Full balance of honey to styBGT to account for auctions.
+        uint256 amount = honey.balanceOf(address(this));
 
         // Send rewards to styBGT
         if (amount > 0) {
@@ -254,5 +273,30 @@ contract BearnVoterManager is Authorized {
         }
 
         return amount;
+    }
+
+    /// @notice Funds an auction with the reward claimed to the voter.
+    /// @dev The token must have been enabled by vaultManager in order to be kicked.
+    function fundAuction(address _token) external isAuthorized(OPERATOR_ROLE) {
+        // Transfer Full balance of reward token to auction
+        uint256 amount = IERC20(_token).balanceOf(address(bearnVoter));
+
+        // Send rewards to auction
+        if (amount > 0) {
+            bytes memory data = abi.encodeCall(
+                IERC20.transfer,
+                (address(auction), amount)
+            );
+            bearnVoter.execute(
+                address(_token),
+                0,
+                data,
+                IBearnVoter.Operation.Call,
+                false
+            );
+        }
+
+        // Kick auction
+        auction.kick(_token);
     }
 }
