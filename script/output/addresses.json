@@ -7,6 +7,7 @@
   "styBGTCompounder": "0x6Fd7f15a0d7babe0A1a752564a591e1Cb6117F80",
   "treasury": "0x1d3C155281fa67c4f21d9654DD31Af3E288487c6",
   "uiControlCentre": "0x9AaEFc5d2a92827A9dFb01bccEF0ED3EC4Ba0445",
+  "uiControlPointer": "0x00a209EAa76ae7B8289f3da9DE158e8AaF0D79e1",
   "vaultFactory": "0x70b14cd0Cf7BD442DABEf5Cb0247aA478B82fcbb",
   "vaultManager": "0x1721eB3B31A80aA7A7c0D9939579ffB09Dc0d33e",
   "voter": "0x37d1E4594ed04818B68aF5396bc7388c26F17E4A",

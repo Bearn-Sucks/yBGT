@@ -20,6 +20,7 @@ import {BearnBGTFeeModule} from "src/BearnBGTFeeModule.sol";
 import {StakedBearnBGT} from "src/StakedBearnBGT.sol";
 
 import {BearnUIControlCentre} from "src/periphery/BearnUIControlCentre.sol";
+import {BearnUIControlPointer} from "src/periphery/BearnUIControlPointer.sol";
 import {BearnTips} from "src/periphery/BearnTips.sol";
 
 import {DeployScript} from "script/Deployment.s.sol";
@@ -282,6 +283,36 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         vm.stopBroadcast();
 
         return bearnTips;
+    }
+
+    function deployUIControlPointer(
+        DeployedContracts memory c,
+        address _uiControls
+    ) public returns (BearnUIControlPointer) {
+        vm.startBroadcast(deployer);
+        BearnUIControlPointer uiControlPointer = new BearnUIControlPointer(
+            address(c.authorizer)
+        );
+        uiControlPointer.setUIControls(_uiControls);
+        vm.stopBroadcast();
+
+        string memory json = vm.serializeAddress(
+            "EXPORTS",
+            "uiControlPointer",
+            address(uiControlPointer)
+        );
+
+        vm.writeJson(
+            json,
+            string.concat(
+                vm.projectRoot(),
+                "/script/output/localUI/localUI-",
+                vm.toString(block.timestamp),
+                ".json"
+            )
+        );
+
+        return uiControlPointer;
     }
 
     function deployVaults(DeployedContracts memory c) public {
