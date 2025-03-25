@@ -57,4 +57,6 @@ interface IBearnVoterManager {
 
     /* ========== REWARDS ========== */
     function getReward() external returns (uint256);
+
+    function fundAuction(address _token) external;
 }
