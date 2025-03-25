@@ -161,7 +161,7 @@ contract BearnVoterManager is Authorized {
     function activateBoost(bytes calldata pubkey) external returns (bool) {
         bytes memory data = abi.encodeCall(
             bgt.activateBoost,
-            (address(this), pubkey)
+            (address(bearnVoter), pubkey)
         );
 
         (, bytes memory _returndata) = bearnVoter.execute(
@@ -227,7 +227,7 @@ contract BearnVoterManager is Authorized {
     function dropBoost(bytes calldata pubkey) external returns (bool) {
         bytes memory data = abi.encodeCall(
             bgt.dropBoost,
-            (address(this), pubkey)
+            (address(bearnVoter), pubkey)
         );
 
         (, bytes memory _returndata) = bearnVoter.execute(
