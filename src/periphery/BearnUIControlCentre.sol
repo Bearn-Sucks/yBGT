@@ -19,6 +19,7 @@ import {IStakedBearnBGT} from "src/interfaces/IStakedBearnBGT.sol";
 import {IKodiakIsland} from "src/interfaces/IKodiakIsland.sol";
 import {IUniswapV2Pair} from "src/interfaces/IUniswapV2Pair.sol";
 import {IHypervisor} from "src/interfaces/IHypervisor.sol";
+import {IAlgebraPool} from "src/interfaces/IAlgebraPool.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -529,10 +530,24 @@ contract BearnUIControlCentre is Authorized {
         address[] memory tokens = new address[](2);
         tokens[0] = _hypervisor.token0();
         tokens[1] = _hypervisor.token1();
+        IAlgebraPool pool = IAlgebraPool(_hypervisor.pool());
+        (uint256 sqrtPriceX96, , , , , ) = pool.globalState();
+        uint256 priceX96 = FixedPointMathLib.fullMulDiv(
+            sqrtPriceX96,
+            sqrtPriceX96,
+            2 ** 96
+        );
 
         // convert token amounts to their equivalent in token0 and token1 for easier price calcs
         uint256[] memory amounts = new uint256[](2);
         (amounts[0], amounts[1]) = _hypervisor.getTotalAmounts();
+        uint256[] memory equivalentAmounts = new uint256[](2);
+        equivalentAmounts[0] =
+            amounts[0] +
+            FixedPointMathLib.fullMulDiv(amounts[1], 2 ** 96, priceX96);
+        equivalentAmounts[1] =
+            amounts[1] +
+            FixedPointMathLib.fullMulDiv(amounts[0], priceX96, 2 ** 96);
 
         uint256 totalSupply = _hypervisor.totalSupply();
 
@@ -546,11 +561,10 @@ contract BearnUIControlCentre is Authorized {
             }
             uint256 decimals = ERC20(tokens[i]).decimals();
 
-            // can return price for the whole LP based on weightings
-            // assuming the pool is balanced 50/50 since it's automatically rebalanced
+            // can return price for the whole LP based on equivalent amounts of tokens
             uint256 pricePerLpToken = ((
-                ((amounts[i] * pricePerToken * 1e18) / (10 ** decimals))
-            ) / totalSupply) * 2;
+                ((equivalentAmounts[i] * pricePerToken * 1e18) / (10 ** decimals))
+            ) / totalSupply) ;
 
             return pricePerLpToken;
         }
