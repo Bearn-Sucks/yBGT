@@ -15,15 +15,19 @@ contract Trigger {
     IBearnVaultFactory public immutable FACTORY;
     IKeeper public immutable KEEPER;
 
-    CommonReportTrigger public COMMON_TRIGGER = CommonReportTrigger(0xA045D4dAeA28BA7Bfe234c96eAa03daFae85A147);
+    CommonReportTrigger public COMMON_TRIGGER =
+        CommonReportTrigger(0xA045D4dAeA28BA7Bfe234c96eAa03daFae85A147);
 
     constructor(address _factory) {
         FACTORY = IBearnVaultFactory(_factory);
         KEEPER = IKeeper(FACTORY.keeper());
     }
 
-    function reportTrigger(address _vault) public view returns (bool, bytes memory) {
-        (bool trigger, bytes memory data) = COMMON_TRIGGER.strategyReportTrigger(_vault);
+    function reportTrigger(
+        address _vault
+    ) public view returns (bool, bytes memory) {
+        (bool trigger, bytes memory data) = COMMON_TRIGGER
+            .strategyReportTrigger(_vault);
         if (trigger) {
             return (trigger, abi.encodeCall(IKeeper.report, (_vault)));
         }
