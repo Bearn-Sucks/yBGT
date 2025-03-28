@@ -4,7 +4,7 @@ pragma solidity >=0.8.18;
 import {ITokenizedStaker} from "@yearn/tokenized-strategy-periphery/Bases/Staker/ITokenizedStaker.sol";
 
 interface IStakedBearnBGTCompounder is ITokenizedStaker {
-    function yBGT() external view returns (address);
+    function styBGT() external view returns (address);
 
     function honey() external view returns (address);
 

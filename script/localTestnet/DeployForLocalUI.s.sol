@@ -183,25 +183,8 @@ contract LocalUIDeployment is DeployScript, StdCheats {
 
     function deployUIContracts(DeployedContracts memory c) public {
         BearnUIControlCentre uiControl = deployUIControl(c);
-        BearnTips bearnTips = deployBearnTips(c);
-
-        string memory json = vm.serializeAddress(
-            "EXPORTS",
-            "uiControlCentre",
-            address(uiControl)
-        );
-
-        json = vm.serializeAddress("EXPORTS", "bearnTips", address(bearnTips));
-
-        vm.writeJson(
-            json,
-            string.concat(
-                vm.projectRoot(),
-                "/script/output/localUI/localUI-",
-                vm.toString(block.timestamp),
-                ".json"
-            )
-        );
+        deployBearnTips(c);
+        deployUIControlPointer(c, address(uiControl));
     }
 
     function deployUIControl(
@@ -278,9 +261,28 @@ contract LocalUIDeployment is DeployScript, StdCheats {
         DeployedContracts memory c
     ) public returns (BearnTips) {
         vm.startBroadcast(deployer);
-        BearnTips bearnTips = new BearnTips(address(c.authorizer));
+        BearnTips bearnTips = new BearnTips(
+            address(c.authorizer),
+            address(c.styBGTCompounder)
+        );
         bearnTips.setTreasury(address(c.treasury));
         vm.stopBroadcast();
+
+        string memory json = vm.serializeAddress(
+            "EXPORTS",
+            "bearnTips",
+            address(bearnTips)
+        );
+
+        vm.writeJson(
+            json,
+            string.concat(
+                vm.projectRoot(),
+                "/script/output/localUI/localUI-",
+                vm.toString(block.timestamp),
+                ".json"
+            )
+        );
 
         return bearnTips;
     }

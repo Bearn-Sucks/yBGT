@@ -9,6 +9,8 @@ import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 import {BearnVault} from "src/BearnVault.sol";
 
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
+import {IStakedBearnBGT} from "src/interfaces/IStakedBearnBGT.sol";
+import {IStakedBearnBGTCompounder} from "src/interfaces/IStakedBearnBGTCompounder.sol";
 
 /// @title BearnTips
 /// @author bearn.sucks
@@ -18,10 +20,20 @@ contract BearnTips is Authorized {
 
     event Tipped(address indexed tipper, address indexed token, uint256 amount);
 
+    address immutable yBGT;
+    address immutable styBGT;
+    address immutable styBGTCompounder;
+
     address public treasury;
 
-    constructor(address _authorizer) Authorized(_authorizer) {
+    constructor(
+        address _authorizer,
+        address _styBGTCompounder
+    ) Authorized(_authorizer) {
         treasury = msg.sender;
+        styBGTCompounder = _styBGTCompounder;
+        styBGT = IStakedBearnBGTCompounder(_styBGTCompounder).styBGT();
+        yBGT = IStakedBearnBGT(styBGT).yBGT();
     }
 
     function setTreasury(
@@ -50,6 +62,26 @@ contract BearnTips is Authorized {
         }
 
         IBearnVault(bearnVault).transfer(msg.sender, output);
+    }
+
+    function zapIntoStyBGTCompounder(
+        uint256 amount
+    ) external returns (uint256) {
+        IERC20(yBGT).safeTransferFrom(msg.sender, address(this), amount);
+
+        IERC20(yBGT).forceApprove(styBGT, amount); // force approve is the new safeApprove in OZ
+        uint256 styBGTAmount = IBearnVault(styBGT).deposit(
+            amount,
+            address(this)
+        );
+
+        IERC20(styBGT).forceApprove(styBGTCompounder, styBGTAmount); // force approve is the new safeApprove in OZ
+        uint256 output = IBearnVault(styBGTCompounder).deposit(
+            styBGTAmount,
+            address(msg.sender)
+        );
+
+        return output;
     }
 
     function rescue(

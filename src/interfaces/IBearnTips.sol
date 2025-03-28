@@ -15,5 +15,7 @@ interface IBearnTips {
         uint256 tips
     ) external;
 
+    function zapIntoStyBGTCompounder(uint256 amount) external returns (uint256);
+
     function rescue(address token, uint256 amount) external;
 }
