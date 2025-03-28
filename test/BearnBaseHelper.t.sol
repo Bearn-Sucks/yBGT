@@ -179,6 +179,7 @@ abstract contract BearnBaseHelper is BeraHelper {
         );
 
         styBGTCompounder = new StakedBearnBGTCompounder(
+            address(yBGT),
             address(styBGT),
             address(bearnVaultManager),
             address(honey)

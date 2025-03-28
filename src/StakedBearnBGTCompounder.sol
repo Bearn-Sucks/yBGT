@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity >=0.8.18;
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import {IStakedBearnBGT} from "src/interfaces/IStakedBearnBGT.sol";
 import {TokenizedStaker} from "@yearn/tokenized-strategy-periphery/Bases/Staker/TokenizedStaker.sol";
 import {Auction} from "@yearn/tokenized-strategy-periphery/Auctions/Auction.sol";
 import {AuctionFactory} from "@yearn/tokenized-strategy-periphery/Auctions/AuctionFactory.sol";
@@ -17,7 +19,7 @@ import {IBearnVaultManager} from "src/interfaces/IBearnVaultManager.sol";
 contract StakedBearnBGTCompounder is TokenizedStaker {
     using SafeERC20 for IERC20;
 
-    TokenizedStaker public immutable styBGT;
+    IStakedBearnBGT public immutable styBGT;
     IERC20 public immutable honey;
     IBearnVaultManager public immutable bearnVaultManager;
 
@@ -30,7 +32,7 @@ contract StakedBearnBGTCompounder is TokenizedStaker {
         address _honey
     ) TokenizedStaker(_ybgt, "styBGT Compounder") {
         honey = IERC20(_honey);
-        styBGT = TokenizedStaker(_styBGT);
+        styBGT = IStakedBearnBGT(_styBGT);
         bearnVaultManager = IBearnVaultManager(_bearnVaultManager);
 
         // Use Yearn AuctionFactory to deploy an Auction
@@ -38,7 +40,7 @@ contract StakedBearnBGTCompounder is TokenizedStaker {
         auction = Auction(
             AuctionFactory(0xCfA510188884F199fcC6e750764FAAbE6e56ec40)
                 .createNewAuction(
-                    address(yBGT),
+                    address(_ybgt),
                     address(this),
                     address(this),
                     1 days,
@@ -104,7 +106,7 @@ contract StakedBearnBGTCompounder is TokenizedStaker {
     function setAuction(address _auction) external onlyManagement {
         if (address(auction) != address(0)) {
             require(
-                auction.want() == address(yBGT) ||
+                auction.want() == address(asset) ||
                     auction.want() == address(styBGT),
                 "Invalid auction"
             );
