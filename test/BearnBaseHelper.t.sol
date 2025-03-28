@@ -27,6 +27,7 @@ import {BearnVaultManager} from "src/BearnVaultManager.sol";
 import {BearnCompoundingVault} from "src/BearnCompoundingVault.sol";
 import {StakedBearnBGT} from "src/StakedBearnBGT.sol";
 import {StakedBearnBGTCompounder} from "src/StakedBearnBGTCompounder.sol";
+import {StakedBearnBGTCompounderClaimer} from "src/StakedBearnBGTCompounderClaimer.sol";
 
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
 import {IBearnCompoundingVault} from "src/interfaces/IBearnCompoundingVault.sol";
@@ -60,6 +61,7 @@ abstract contract BearnBaseHelper is BeraHelper {
     IBaseAuctioneer internal bearnCompoundingVaultAuction;
     StakedBearnBGT internal styBGT;
     StakedBearnBGTCompounder internal styBGTCompounder;
+    StakedBearnBGTCompounderClaimer internal styBGTCompounderClaimer;
 
     /// @dev A function invoked before each test case is run.
     function setUp() public virtual override {
@@ -183,6 +185,15 @@ abstract contract BearnBaseHelper is BeraHelper {
             address(bearnVaultManager),
             address(honey)
         );
+
+        styBGTCompounderClaimer = new StakedBearnBGTCompounderClaimer(
+            address(authorizer),
+            address(styBGTCompounder)
+        );
+
+        styBGT.setClaimFor(address(styBGTCompounder), address(styBGTCompounderClaimer));
+
+        IBearnVault(address(styBGTCompounder)).setKeeper(address(styBGTCompounderClaimer));
 
         // Accept styBGT Compounder's Auction's governance
         bearnVaultManager.registerAuction(address(styBGTCompounder.auction()));

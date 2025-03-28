@@ -12,7 +12,7 @@ import {IStakedBearnBGTCompounder} from "src/interfaces/IStakedBearnBGTCompounde
 
 import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
-contract CompounderClaimer is Authorized {
+contract StakedBearnBGTCompounderClaimer is Authorized {
     using SafeERC20 for IERC20;
     bytes32 public immutable KEEPER_ROLE = keccak256("KEEPER_ROLE");
 
@@ -54,8 +54,6 @@ contract CompounderClaimer is Authorized {
     }
 
     function report() external isAuthorized(KEEPER_ROLE) {
-        styBGT.getRewardFor(address(styBGTCompounder));
-
         uint256[] memory rewards = styBGT.earnedMulti(
             address(styBGTCompounder)
         );
