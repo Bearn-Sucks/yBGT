@@ -663,9 +663,14 @@ contract BearnUIControlCentre is Authorized {
         uint256 length = vaults.length;
         uint256[] memory updatedEarneds = new uint256[](length);
         for (uint256 i; i < length; i++) {
-            updatedEarneds[i] = IBearnBGTEarnerVault(vaults[i]).updatedEarned(
-                user
+            // low-level call because this can revert if totalSupply of the vault is 0
+            (bool success, bytes memory data) = vaults[i].staticcall(
+                abi.encodeCall(IBearnBGTEarnerVault.updatedEarned, (user))
             );
+
+            if (success) {
+                updatedEarneds[i] = abi.decode(data, (uint256));
+            }
         }
 
         return updatedEarneds;
