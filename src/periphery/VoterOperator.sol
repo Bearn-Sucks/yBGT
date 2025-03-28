@@ -7,9 +7,8 @@ import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 import {IBearnVoterManager} from "../interfaces/IBearnVoterManager.sol";
 
 contract VoterOperator is Authorized {
-
     address[] public incentiveTokens;
-    
+
     mapping(address => bool) public isIncentiveToken;
 
     IBearnVoterManager public immutable voterManager;
@@ -22,7 +21,11 @@ contract VoterOperator is Authorized {
 
     uint256 public minToBoost;
 
-    constructor(address _authorizer, address _voterManager, bytes memory _validatorPubkey) Authorized(_authorizer) {
+    constructor(
+        address _authorizer,
+        address _voterManager,
+        bytes memory _validatorPubkey
+    ) Authorized(_authorizer) {
         voterManager = IBearnVoterManager(_voterManager);
         bgt = IBGT(voterManager.bgt());
         bearnVoter = address(voterManager.bearnVoter());
@@ -35,29 +38,42 @@ contract VoterOperator is Authorized {
         voterManager.fundAuction(_token);
     }
 
-    function addIncentiveToken(address _token) external isAuthorized(MANAGER_ROLE) {
-        require(!isIncentiveToken[_token], "Token is already an incentive token");
+    function addIncentiveToken(
+        address _token
+    ) external isAuthorized(MANAGER_ROLE) {
+        require(
+            !isIncentiveToken[_token],
+            "Token is already an incentive token"
+        );
         isIncentiveToken[_token] = true;
         incentiveTokens.push(_token);
     }
 
-    function removeIncentiveToken(address _token) external isAuthorized(MANAGER_ROLE) {
+    function removeIncentiveToken(
+        address _token
+    ) external isAuthorized(MANAGER_ROLE) {
         require(isIncentiveToken[_token], "Token is not an incentive token");
         isIncentiveToken[_token] = false;
         for (uint256 i = 0; i < incentiveTokens.length; i++) {
             if (incentiveTokens[i] == _token) {
-                incentiveTokens[i] = incentiveTokens[incentiveTokens.length - 1];
+                incentiveTokens[i] = incentiveTokens[
+                    incentiveTokens.length - 1
+                ];
                 incentiveTokens.pop();
                 break;
             }
         }
     }
 
-    function setValidatorPubkey(bytes calldata _validatorPubkey) external isAuthorized(MANAGER_ROLE) {
+    function setValidatorPubkey(
+        bytes calldata _validatorPubkey
+    ) external isAuthorized(MANAGER_ROLE) {
         validatorPubkey = _validatorPubkey;
     }
 
-    function setMinToBoost(uint256 _minToBoost) external isAuthorized(MANAGER_ROLE) {
+    function setMinToBoost(
+        uint256 _minToBoost
+    ) external isAuthorized(MANAGER_ROLE) {
         minToBoost = _minToBoost;
     }
 
@@ -66,7 +82,10 @@ contract VoterOperator is Authorized {
     }
 
     function boostable() public view returns (uint256) {
-        (uint32 blockNumberLast, uint128 balance) = bgt.boostedQueue(address(bearnVoter), validatorPubkey);
+        (uint32 blockNumberLast, uint128 balance) = bgt.boostedQueue(
+            address(bearnVoter),
+            validatorPubkey
+        );
         if (balance > 0) {
             if (blockNumberLast + bgt.activateBoostDelay() > block.number) {
                 return 0;
@@ -82,11 +101,17 @@ contract VoterOperator is Authorized {
             return (false, "not enough balance");
         }
 
-        return (true, abi.encodeWithSelector(VoterOperator.queueBoost.selector));
+        return (
+            true,
+            abi.encodeWithSelector(VoterOperator.queueBoost.selector)
+        );
     }
 
     function queueBoost() external {
-        ( , uint128 balance) = bgt.boostedQueue(address(bearnVoter), validatorPubkey);
+        (, uint128 balance) = bgt.boostedQueue(
+            address(bearnVoter),
+            validatorPubkey
+        );
 
         if (balance > 0) {
             activateBoost();
@@ -100,6 +125,9 @@ contract VoterOperator is Authorized {
     }
 
     function activateBoost() public {
-        require(bgt.activateBoost(address(bearnVoter), validatorPubkey), "Failed to activate boost");
+        require(
+            bgt.activateBoost(address(bearnVoter), validatorPubkey),
+            "Failed to activate boost"
+        );
     }
 }
