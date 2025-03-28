@@ -21,22 +21,24 @@ contract StakedBearnBGTCompounder is TokenizedStaker {
     IERC20 public immutable honey;
     IBearnVaultManager public immutable bearnVaultManager;
 
-    Auction public immutable auction;
+    Auction public auction;
 
     constructor(
+        address _ybgt,
         address _styBGT,
         address _bearnVaultManager,
         address _honey
-    ) TokenizedStaker(_styBGT, "styBGT Compounder") {
+    ) TokenizedStaker(_ybgt, "styBGT Compounder") {
         honey = IERC20(_honey);
         styBGT = TokenizedStaker(_styBGT);
         bearnVaultManager = IBearnVaultManager(_bearnVaultManager);
 
         // Use Yearn AuctionFactory to deploy an Auction
+        // Sell into yBGT
         auction = Auction(
             AuctionFactory(0xCfA510188884F199fcC6e750764FAAbE6e56ec40)
                 .createNewAuction(
-                    address(styBGT),
+                    address(yBGT),
                     address(this),
                     address(this),
                     1 days,
@@ -53,9 +55,18 @@ contract StakedBearnBGTCompounder is TokenizedStaker {
         /// @dev don't forget to accept auction's governance on bearnVaultManager
     }
 
-    function _deployFunds(uint256 amount) internal override {}
+    function _deployFunds(uint256 amount) internal override {
+        styBGT.deposit(asset.balanceOf(address(this)), address(this));
+    }
 
-    function _freeFunds(uint256 amount) internal override {}
+    function _freeFunds(uint256 amount) internal override {
+        // Use previewWithdraw to round up.
+        uint256 shares = styBGT.previewWithdraw(amount);
+
+        shares = Math.min(shares, styBGT.balanceOf(address(this)));
+
+        styBGT.redeem(shares, address(this), address(this));
+    }
 
     function _harvestAndReport()
         internal
@@ -70,8 +81,13 @@ contract StakedBearnBGTCompounder is TokenizedStaker {
             _kickAuction();
         }
 
+        uint256 excessAmount = asset.balanceOf(address(this));
+        if (excessAmount > 0) {
+            styBGT.deposit(excessAmount, address(this));
+        }
+
         // report total assets
-        _totalAssets = IERC20(address(styBGT)).balanceOf(address(this));
+        _totalAssets = styBGT.convertToAssets(styBGT.balanceOf(address(this)));
     }
 
     /// @dev Kick an auction
@@ -83,5 +99,16 @@ contract StakedBearnBGTCompounder is TokenizedStaker {
 
             auction.kick(address(honey));
         }
+    }
+
+    function setAuction(address _auction) external onlyManagement {
+        if (address(auction) != address(0)) {
+            require(
+                auction.want() == address(yBGT) ||
+                    auction.want() == address(styBGT),
+                "Invalid auction"
+            );
+        }
+        auction = Auction(_auction);
     }
 }
