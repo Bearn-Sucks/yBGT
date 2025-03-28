@@ -252,6 +252,7 @@ contract DeployScript is Script {
         );
 
         deployedContracts.styBGTCompounder = new StakedBearnBGTCompounder(
+            address(deployedContracts.yBGT),
             address(deployedContracts.styBGT),
             address(deployedContracts.vaultManager),
             honey
