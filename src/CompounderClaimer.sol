@@ -48,6 +48,9 @@ contract CompounderClaimer is Authorized {
 
         // Enable honey auctions
         auction.enable(address(honey));
+
+        // Transfer governance to styBGTCompounder management
+        auction.transferGovernance(styBGTCompounder.management());
     }
 
     function report() external isAuthorized(KEEPER_ROLE) {
