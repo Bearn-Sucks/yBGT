@@ -13,6 +13,7 @@ import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
 import {IBearnVaultFactory} from "src/interfaces/IBearnVaultFactory.sol";
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
+import {IBearnBGTEarnerVault} from "src/interfaces/IBearnBGTEarnerVault.sol";
 import {IBearnAuctionFactory} from "src/interfaces/IBearnAuctionFactory.sol";
 import {IBearnBGT} from "src/interfaces/IBearnBGT.sol";
 import {IStakedBearnBGT} from "src/interfaces/IStakedBearnBGT.sol";
@@ -563,8 +564,9 @@ contract BearnUIControlCentre is Authorized {
 
             // can return price for the whole LP based on equivalent amounts of tokens
             uint256 pricePerLpToken = ((
-                ((equivalentAmounts[i] * pricePerToken * 1e18) / (10 ** decimals))
-            ) / totalSupply) ;
+                ((equivalentAmounts[i] * pricePerToken * 1e18) /
+                    (10 ** decimals))
+            ) / totalSupply);
 
             return pricePerLpToken;
         }
@@ -628,5 +630,44 @@ contract BearnUIControlCentre is Authorized {
             : FixedPointMathLib.fullMulDiv(1e18, 2 ** 96, priceX96);
 
         return FixedPointMathLib.fullMulDiv(yBGTRatio, beraPrice, 1e18);
+    }
+
+    // reports a user's asset amount in a bearn vault (as opposed to share balance)
+    function getUserScaledAssets(
+        address user,
+        address vault
+    ) public view returns (uint256) {
+        uint256 shares = IBearnVault(vault).balanceOf(user);
+        return IBearnVault(vault).convertToAssets(shares);
+    }
+
+    // reports a user's asset amount in a bearn vault (as opposed to share balance)
+    function getUserScaledAssets(
+        address user,
+        address[] calldata vaults
+    ) public view returns (uint256[] memory) {
+        uint256 length = vaults.length;
+        uint256[] memory assets = new uint256[](length);
+        for (uint256 i; i < length; i++) {
+            uint256 shares = IBearnVault(vaults[i]).balanceOf(user);
+            assets[i] = IBearnVault(vaults[i]).convertToAssets(shares);
+        }
+
+        return assets;
+    }
+
+    function getUserUpdatedEarneds(
+        address user,
+        address[] calldata vaults
+    ) public view returns (uint256[] memory) {
+        uint256 length = vaults.length;
+        uint256[] memory updatedEarneds = new uint256[](length);
+        for (uint256 i; i < length; i++) {
+            updatedEarneds[i] = IBearnBGTEarnerVault(vaults[i]).updatedEarned(
+                user
+            );
+        }
+
+        return updatedEarneds;
     }
 }

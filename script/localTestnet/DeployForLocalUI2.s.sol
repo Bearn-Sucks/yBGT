@@ -41,16 +41,12 @@ contract LocalUIDeployment2 is LocalUIDeployment {
         vm.startBroadcast(deployer);
 
         // BearnUIControlCentre uiControl = BearnUIControlCentre(
-        //     0x097caEc452c6DB5EE9Fb2eDcA66Cd1db450662Ad
+        //     0x764D962f591e4C17ec3c7187A5fC7F57cac9F8Db
         // );
-        console.log(
-            uiControl.getApr(0x1Ce397BD0345283DAa41485c1Fa9588E7d80368c)
-        );
+        // console.log(
+        //     uiControl.getApr(0x70244d4B342C14b77Aa1266b9c9Dc08593CDEFF4)
+        // );
 
-        uiControl.adjustWhitelist(
-            0x7F0976b52F6c1ddcD4d6f639537C97DE22fa2b69,
-            false
-        );
         uiControl.adjustWhitelist(
             0xfC4994e0A4780ba7536d7e79611468B6bde14CaE,
             false
@@ -60,6 +56,11 @@ contract LocalUIDeployment2 is LocalUIDeployment {
             false
         );
 
+        uiControl.setTokenAddressOverride(
+            0xff12470a969Dd362EB6595FFB44C82c959Fe9ACc,
+            0x549943e04f40284185054145c6E4e9568C1D3241
+        );
+
         // bool[] memory states = new bool[](stakes.length);
         // for (uint256 i = 0; i < stakes.length; i++) {
         //     states[i] = false;
@@ -67,27 +68,6 @@ contract LocalUIDeployment2 is LocalUIDeployment {
 
         // // whitelist stakes
         // uiControl.adjustWhitelists(stakes, states);
-
-        // uiControl.adjustWhitelist(
-        //     0x2c4a603A2aA5596287A06886862dc29d56DbC354,
-        //     true
-        // );
-        // uiControl.adjustWhitelist(
-        //     0xdE04c469Ad658163e2a5E860a03A86B52f6FA8C8,
-        //     true
-        // );
-        // uiControl.adjustWhitelist(
-        //     0x38fdD999Fe8783037dB1bBFE465759e312f2d809,
-        //     true
-        // );
-        // uiControl.adjustWhitelist(
-        //     0xDd70A5eF7d8CfE5C5134b5f9874b09Fb5Ce812b4,
-        //     true
-        // );
-        // uiControl.adjustWhitelist(
-        //     0xF961a8f6d8c69E7321e78d254ecAfBcc3A637621,
-        //     true
-        // );
     }
 
     function checkVaults(DeployedContracts memory c) public view {
