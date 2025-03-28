@@ -84,6 +84,24 @@ contract BearnTips is Authorized {
         return output;
     }
 
+    function zapOutFromStyBGTCompounder(
+        uint256 amount
+    ) external returns (uint256) {
+        uint256 styBGTAmount = IBearnVault(styBGTCompounder).redeem(
+            amount, // shares
+            address(this), // receiver
+            msg.sender // owner
+        );
+
+        uint256 output = IBearnVault(styBGT).redeem(
+            styBGTAmount, // shares
+            address(msg.sender), // receiver
+            address(this) // owner
+        );
+
+        return output;
+    }
+
     function rescue(
         address token,
         uint256 amount
