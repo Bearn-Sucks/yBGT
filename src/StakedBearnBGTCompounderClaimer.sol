@@ -63,16 +63,15 @@ contract StakedBearnBGTCompounderClaimer is Authorized {
         for (uint256 i = 0; i < rewards.length; i++) {
             address reward = styBGT.rewardTokens(i);
             uint256 balance = IERC20(reward).balanceOf(address(this));
+
+            if (balance == 0) continue;
+
             if (reward == address(honey)) {
-                if (balance > 0 && !auction.isActive(address(honey))) {
+                if (!auction.isActive(address(honey))) {
                     honey.safeTransfer(address(auction), balance);
                     auction.kick(address(honey));
                 }
-                continue;
-            }
-
-            if (
-                balance > 0 &&
+            } else if (
                 styBGTCompounder.rewardData(reward).rewardsDistributor ==
                 address(this)
             ) {
