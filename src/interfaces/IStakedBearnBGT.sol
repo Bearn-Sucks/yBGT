@@ -13,4 +13,6 @@ interface IStakedBearnBGT is ITokenizedStaker {
     function lastClaimedBlock() external view returns (uint256);
 
     function auction() external view returns (address);
+
+    function getRewardFor(address user) external;
 }
