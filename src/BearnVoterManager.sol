@@ -60,7 +60,7 @@ contract BearnVoterManager is Authorized {
             AuctionFactory(0xCfA510188884F199fcC6e750764FAAbE6e56ec40)
                 .createNewAuction(
                     address(honey),
-                    address(bearnVoter),
+                    address(this),
                     styBGT.management(),
                     1 days,
                     5_000
@@ -159,7 +159,20 @@ contract BearnVoterManager is Authorized {
     /// @dev Left open to the public since anyone can activate boost that is queued and ready
     /// @param pubkey Public key of the boostee
     function activateBoost(bytes calldata pubkey) external returns (bool) {
-        return bgt.activateBoost(address(bearnVoter), pubkey);
+        bytes memory data = abi.encodeCall(
+            bgt.activateBoost,
+            (address(bearnVoter), pubkey)
+        );
+
+        (, bytes memory _returndata) = bearnVoter.execute(
+            address(bgt),
+            0,
+            data,
+            IBearnVoter.Operation.Call,
+            false
+        );
+
+        return abi.decode(_returndata, (bool));
     }
 
     function queueDropBoost(
@@ -212,7 +225,20 @@ contract BearnVoterManager is Authorized {
     /// @dev Left open to the public since anyone can activate boost that is queued and ready
     /// @param pubkey Public key of the boostee
     function dropBoost(bytes calldata pubkey) external returns (bool) {
-        return bgt.dropBoost(address(bearnVoter), pubkey);
+        bytes memory data = abi.encodeCall(
+            bgt.dropBoost,
+            (address(bearnVoter), pubkey)
+        );
+
+        (, bytes memory _returndata) = bearnVoter.execute(
+            address(bgt),
+            0,
+            data,
+            IBearnVoter.Operation.Call,
+            false
+        );
+
+        return abi.decode(_returndata, (bool));
     }
 
     /* ========== REWARDS ========== */
@@ -232,7 +258,7 @@ contract BearnVoterManager is Authorized {
         );
 
         // Transfer Full balance of honey to styBGT to account for auctions.
-        uint256 amount = honey.balanceOf(address(bearnVoter));
+        uint256 amount = honey.balanceOf(address(this));
 
         // Send rewards to styBGT
         if (amount > 0) {
