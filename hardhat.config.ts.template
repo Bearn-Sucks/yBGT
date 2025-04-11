@@ -12,6 +12,10 @@ const config: HardhatUserConfig = {
   paths: {
     sources: "src/interfaces", // only need the interfaces
   },
+
+  networks: {
+    berachain: { url: "https://rpc.berachain.com" },
+  },
 };
 
 export default config;

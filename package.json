@@ -14,7 +14,8 @@
     "format:check": "prettier --check 'src/**/*.*(sol|json)'",
     "lint": "solhint 'src/**/*.sol'",
     "lint:fix": "solhint --fix 'src/**/*.sol'",
-    "generate-types": "sh generate-types.sh"
+    "generate-types": "sh generate-types.sh",
+    "gather-vaults": "sh gather-vaults.sh"
   },
   "dependencies": {
     "@nomicfoundation/hardhat-foundry": "^1.1.3",
