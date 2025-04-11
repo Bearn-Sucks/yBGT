@@ -29,6 +29,8 @@ import {StakedBearnBGT} from "src/StakedBearnBGT.sol";
 import {StakedBearnBGTCompounder} from "src/StakedBearnBGTCompounder.sol";
 import {StakedBearnBGTCompounderClaimer} from "src/StakedBearnBGTCompounderClaimer.sol";
 
+import {Auction} from "@yearn/tokenized-strategy-periphery/Auctions/Auction.sol";
+import {IVault} from "@yearn/vaults-v3/interfaces/IVault.sol";
 import {IBearnVault} from "src/interfaces/IBearnVault.sol";
 import {IBearnCompoundingVault} from "src/interfaces/IBearnCompoundingVault.sol";
 import {IBeraVault} from "src/interfaces/IBeraVault.sol";
@@ -51,6 +53,7 @@ abstract contract BearnBaseHelper is BeraHelper {
     BearnVaultManager internal bearnVaultManager;
     IBeraVault internal beraVault;
     BearnBGT internal yBGT;
+    IVault internal yBERA;
     BearnBGTFeeModule internal feeModule;
     BearnVoter internal bearnVoter;
     BearnVoterManager internal bearnVoterManager;
@@ -186,9 +189,26 @@ abstract contract BearnBaseHelper is BeraHelper {
             address(honey)
         );
 
+        yBERA = IVault(
+            address(
+                new StakedBearnBGTCompounder(
+                    address(wbera),
+                    address(bearnVaultManager),
+                    address(honey)
+                )
+            )
+        );
+
+        deployCodeTo("Auction", address(0x7DD6B106c28c4e98465b899Ba35547BDceac09d2));
+
+        address governance = Auction(address(0x7DD6B106c28c4e98465b899Ba35547BDceac09d2)).governance();
+        //vm.prank(governance);
+        Auction(0x7DD6B106c28c4e98465b899Ba35547BDceac09d2).enable(address(honey));
+
         styBGTCompounderClaimer = new StakedBearnBGTCompounderClaimer(
             address(authorizer),
-            address(styBGTCompounder)
+            address(styBGTCompounder),
+            address(yBERA)
         );
 
         styBGT.setClaimFor(address(styBGTCompounder), address(styBGTCompounderClaimer));
