@@ -13,5 +13,6 @@
   "voter": "0x37d1E4594ed04818B68aF5396bc7388c26F17E4A",
   "voterManager": "0xc921a1c709c7fEB68295f6C31694460C0251414F",
   "yBGT": "0x7e768f47dfDD5DAe874Aac233f1Bc5817137E453",
-  "yBeraZapper": "0x66e5bdd4f8ab1c1ecd7d3f70db5eae204aaa7562"
+  "yBeraZapper": "0x66e5bdd4f8ab1c1ecd7d3f70db5eae204aaa7562",
+  "kodiakZapper": "0xcAefd208fB30b74F7CD877A277740f16E1e998e5"
 }
