@@ -20,6 +20,8 @@ interface IBearnVoterManager {
 
     function styBGT() external view returns (address);
 
+    function auction() external view returns (address);
+
     /* ========== VOTING ========== */
 
     function submitProposal(

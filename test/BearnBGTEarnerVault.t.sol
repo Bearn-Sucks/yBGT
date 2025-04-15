@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import "forge-std/Test.sol";
 
 import {BearnBaseHelper} from "test/BearnBaseHelper.t.sol";
-
+import {VoterOperator} from "src/periphery/VoterOperator.sol";
 contract BearnBGTEarnerVaultTest is BearnBaseHelper {
     /// @dev A function invoked before each test case is run.
     function setUp() public virtual override {
@@ -168,5 +168,23 @@ contract BearnBGTEarnerVaultTest is BearnBaseHelper {
             0.1 gwei,
             "whale got rewards"
         );
+    }
+
+    function test_boost() public virtual {
+        VoterOperator voterOperator = new VoterOperator(
+            address(authorizer),
+            address(bearnVoterManager)
+        );
+
+        bytes[] memory validatorPubkeys = new bytes[](3);
+        validatorPubkeys[0] = bytes("0x83199315cf36ebcf6a50bab572800d79324835fae832a3da9238f399c39feceb62de41339eab4cc8f79a6d4e6bcb825c");
+        validatorPubkeys[1] = bytes("0xa1147c6c5938ba7f34423f9dd473bf7b1bb8836ed47ed3ff258146c94d6f10aed73cba3b4668adbe32ca0b53a99034f3");
+        validatorPubkeys[2] = bytes("0x892e8d2225cebeed25e54a59f4167610704fc507170a7b6532584ffa7f66c1dda20c83a2f148fb5f7ec614f340edba60");
+
+        vm.prank(bearnManager);
+        voterOperator.setValidatorPubkeys(validatorPubkeys);
+
+        voterOperator.validatorPubkeys(0);
+        
     }
 }

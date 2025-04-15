@@ -6,7 +6,11 @@ import {IBGT} from "@berachain/contracts/pol/BGT.sol";
 import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 import {IBearnVoterManager} from "../interfaces/IBearnVoterManager.sol";
 
+import {Auction} from "@yearn/tokenized-strategy-periphery/Auctions/Auction.sol";
+
 contract VoterOperator is Authorized {
+    bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
+
     address[] public incentiveTokens;
 
     mapping(address => bool) public isIncentiveToken;
@@ -17,58 +21,30 @@ contract VoterOperator is Authorized {
 
     address public immutable bearnVoter;
 
-    bytes public validatorPubkey;
+    bytes[] public validatorPubkeys;
 
     uint256 public minToBoost;
 
     constructor(
         address _authorizer,
-        address _voterManager,
-        bytes memory _validatorPubkey
+        address _voterManager
     ) Authorized(_authorizer) {
         voterManager = IBearnVoterManager(_voterManager);
         bgt = IBGT(voterManager.bgt());
         bearnVoter = address(voterManager.bearnVoter());
-        validatorPubkey = _validatorPubkey;
-        minToBoost = 10e18;
+        minToBoost = 100e18;
     }
 
     function fundAuction(address _token) external {
-        require(isIncentiveToken[_token], "Token is not an incentive token");
+        (, uint64 scaler, ) = Auction(voterManager.auction()).auctions(_token);
+        require(scaler != 0, "Token is not an auction");
         voterManager.fundAuction(_token);
     }
 
-    function addIncentiveToken(
-        address _token
+    function setValidatorPubkeys(
+        bytes[] memory _validatorPubkeys
     ) external isAuthorized(MANAGER_ROLE) {
-        require(
-            !isIncentiveToken[_token],
-            "Token is already an incentive token"
-        );
-        isIncentiveToken[_token] = true;
-        incentiveTokens.push(_token);
-    }
-
-    function removeIncentiveToken(
-        address _token
-    ) external isAuthorized(MANAGER_ROLE) {
-        require(isIncentiveToken[_token], "Token is not an incentive token");
-        isIncentiveToken[_token] = false;
-        for (uint256 i = 0; i < incentiveTokens.length; i++) {
-            if (incentiveTokens[i] == _token) {
-                incentiveTokens[i] = incentiveTokens[
-                    incentiveTokens.length - 1
-                ];
-                incentiveTokens.pop();
-                break;
-            }
-        }
-    }
-
-    function setValidatorPubkey(
-        bytes calldata _validatorPubkey
-    ) external isAuthorized(MANAGER_ROLE) {
-        validatorPubkey = _validatorPubkey;
+        validatorPubkeys = _validatorPubkeys;
     }
 
     function setMinToBoost(
@@ -82,17 +58,21 @@ contract VoterOperator is Authorized {
     }
 
     function boostable() public view returns (uint256) {
-        (uint32 blockNumberLast, uint128 balance) = bgt.boostedQueue(
-            address(bearnVoter),
-            validatorPubkey
-        );
-        if (balance > 0) {
-            if (blockNumberLast + bgt.activateBoostDelay() > block.number) {
-                return 0;
-            }
+        bool openValidator = false;
+        uint256 boostDelay = bgt.activateBoostDelay();
+        for (uint256 i = 0; i < validatorPubkeys.length; i++) {
+            (uint32 blockNumberLast, uint128 balance) = bgt.boostedQueue(
+                address(bearnVoter),
+                validatorPubkeys[i]
+            );
+            if (balance > 0 && blockNumberLast + boostDelay > block.number)
+                continue;
+
+            openValidator = true;
+            break;
         }
 
-        return bgt.unboostedBalanceOf(address(bearnVoter));
+        return openValidator ? bgt.unboostedBalanceOf(address(bearnVoter)) : 0;
     }
 
     function shouldBoost() external view returns (bool, bytes memory) {
@@ -107,24 +87,40 @@ contract VoterOperator is Authorized {
         );
     }
 
-    function queueBoost() external {
-        (, uint128 balance) = bgt.boostedQueue(
-            address(bearnVoter),
-            validatorPubkey
-        );
-
-        if (balance > 0) {
-            activateBoost();
-        }
+    function queueBoost() external isAuthorized(KEEPER_ROLE) {
+        activateBoosts();
 
         uint256 amount = bgt.unboostedBalanceOf(address(bearnVoter));
 
         if (amount > minToBoost) {
-            voterManager.queueBoost(validatorPubkey, uint128(amount));
+            for (uint256 i = 0; i < validatorPubkeys.length; i++) {
+                (, uint128 balance) = bgt.boostedQueue(
+                    address(bearnVoter),
+                    validatorPubkeys[i]
+                );
+
+                if (balance > 0) continue;
+
+                voterManager.queueBoost(validatorPubkeys[i], uint128(amount));
+            }
         }
     }
 
-    function activateBoost() public {
+    function activateBoosts() public {
+        uint256 boostDelay = bgt.activateBoostDelay();
+        for (uint256 i = 0; i < validatorPubkeys.length; i++) {
+            (uint32 blockNumberLast, uint128 balance) = bgt.boostedQueue(
+                address(bearnVoter),
+                validatorPubkeys[i]
+            );
+
+            if (balance > 0 && blockNumberLast + boostDelay < block.number) {
+                activateBoost(validatorPubkeys[i]);
+            }
+        }
+    }
+
+    function activateBoost(bytes memory validatorPubkey) public {
         require(
             bgt.activateBoost(address(bearnVoter), validatorPubkey),
             "Failed to activate boost"
