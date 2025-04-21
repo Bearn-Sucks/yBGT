@@ -116,6 +116,7 @@ contract VoterOperator is Authorized {
 
             if (balance > 0 && blockNumberLast + boostDelay < block.number) {
                 activateBoost(validatorPubkeys[i]);
+                break;
             }
         }
     }

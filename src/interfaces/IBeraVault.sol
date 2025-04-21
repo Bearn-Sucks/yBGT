@@ -31,4 +31,12 @@ interface IBeraVault is IRewardVault {
 
     /// @notice The last time the rewards were updated.
     function lastUpdateTime() external view returns (uint256);
+
+    /// @notice Process incentives added via IERC20.transfer, adding them to the incentive accounting.
+    /// @notice Allows permissionless incentive addition, without dossing the manager possibility to
+    /// let the incentive accounting go to 0 in order to be able to decrease the incentive rate.
+    /// @param token The address of the token to process.
+    /// @param amount The amount of token to account as incentive.
+    /// @dev Permissioned function, only callable by incentive token manager.
+    function accountIncentives(address token, uint256 amount) external;
 }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.18;
 
+import {IVault} from "@yearn/vaults-v3/interfaces/IVault.sol";
+
 import {BearnExecutor} from "../bases/BearnExecutor.sol";
 import {Authorized} from "@bearn/governance/contracts/bases/Authorized.sol";
 
@@ -14,11 +16,18 @@ contract BribeManager is Authorized, BearnExecutor {
 
     IBeraVault public immutable beraVault;
 
+    IVault public immutable yBERA;
+
+    address public immutable WBERA;
+
     constructor(
         address _authorizer,
-        address _beraVault
+        address _beraVault,
+        address _yBERA
     ) Authorized(_authorizer) {
         beraVault = IBeraVault(_beraVault);
+        yBERA = IVault(_yBERA);
+        WBERA = yBERA.asset();
     }
 
     function name() external view returns (string memory) {
@@ -27,6 +36,14 @@ contract BribeManager is Authorized, BearnExecutor {
                 IERC20Metadata(beraVault.stakeToken()).symbol(),
                 "BribeManager"
             );
+    }
+
+    function redeemYbera() external {
+        yBERA.redeem(
+            yBERA.balanceOf(address(this)),
+            address(this),
+            address(this)
+        );
     }
 
     function balanceOfIncentiveTokens()
@@ -52,6 +69,13 @@ contract BribeManager is Authorized, BearnExecutor {
         );
         IERC20(token).forceApprove(address(beraVault), amount);
         beraVault.addIncentive(token, amount, incentiveRate);
+    }
+
+    function accountIncentives(
+        address token,
+        uint256 amount
+    ) external isAuthorized(MANAGER_ROLE) {
+        beraVault.accountIncentives(token, amount);
     }
 
     /// @param to Tx destination

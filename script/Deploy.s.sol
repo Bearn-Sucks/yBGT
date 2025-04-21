@@ -3,19 +3,15 @@ pragma solidity ^0.8.20;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {VoterOperator} from "../src/periphery/VoterOperator.sol";
-
+import {BribeManager} from "../src/periphery/BribeManager.sol";
+import {BointsApr} from "../src/periphery/BointsApr.sol";
 contract Deploy is Script {
     function run() public {
         vm.startBroadcast();
-
-        VoterOperator voterOperator = new VoterOperator(
-            address(0x261cF8ccBf5023aE7D5219A136c31e8a86220FD3),
-            address(0xf64B67875F299e1Ed49F2aA15B9C38a8641d2BA9)
+        BointsApr bointsApr = new BointsApr(
+            address(0x261cF8ccBf5023aE7D5219A136c31e8a86220FD3)
         );
-
-        console.log("VoterOperator deployed at", address(voterOperator));
-
+        console.log("BointsApr deployed at", address(bointsApr));
         vm.stopBroadcast();
     }
 }
