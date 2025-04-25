@@ -169,4 +169,6 @@ contract BearnBGTEarnerVaultTest is BearnBaseHelper {
             "whale got rewards"
         );
     }
+
+    
 }
