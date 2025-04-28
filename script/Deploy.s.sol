@@ -4,18 +4,16 @@ pragma solidity ^0.8.20;
 import {Script} from "forge-std/Script.sol";
 import {BearnVoterManager} from "../src/BearnVoterManager.sol";
 import {console} from "forge-std/console.sol";
-import {StakedBearnBera} from "../src/StakedBearnBera.sol";
-
+import {StakedBearnHoney} from "../src/StakedBearnHoney.sol";
+import {YHoneyZapper} from "../src/periphery/yHoneyZapper.sol";
 contract Deploy is Script {
-    address public ybera = 0x982940eBfC5caa2F5b5a82AAc2Dfa99F18BB7dA4;
+    address public yHONEY = 0xC82971BcFF09171e16Ac08AEE9f4EA3fB16C3BDC;
     function run() public {
         vm.startBroadcast();
 
-        StakedBearnBera styBera = new StakedBearnBera(
-            ybera
-        );
+        YHoneyZapper yHoneyZapper = new YHoneyZapper();
 
-        console.log("StakedBearnBera deployed at", address(styBera));
+        console.log("YHoneyZapper deployed at", address(yHoneyZapper));
         vm.stopBroadcast();
     }
 }
