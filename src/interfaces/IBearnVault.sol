@@ -11,4 +11,6 @@ interface IBearnVault is ITokenizedStaker {
     function yBGT() external view returns (address);
 
     function stakingAsset() external view returns (address);
+
+    function getRewardFor(address _user) external;
 }
