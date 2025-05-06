@@ -12,6 +12,14 @@ contract Deploy is Script {
             address(0x261cF8ccBf5023aE7D5219A136c31e8a86220FD3)
         );
         console.log("BointsApr deployed at", address(bointsApr));
+
+        console.log("Honey APR ", bointsApr.getHoneyBointsApr(18750000));
+
+        console.log("YBera APR ", bointsApr.getYBeraBointsApr(18750000));
+
+        console.log("LP APR ", bointsApr.getLPBointsApr(18750000));
+
+        console.log("Staked Boints APR ", bointsApr.getStakedBointsApr(18750000));
         vm.stopBroadcast();
     }
 }
