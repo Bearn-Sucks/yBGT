@@ -7,7 +7,13 @@ import {IBearnVault} from "../interfaces/IBearnVault.sol";
 import {BearnUIControlCentre} from "./BearnUIControlCentre.sol";
 
 contract BointsApr is Authorized {
-    event BointsAprUpdated(uint256 bointsWeeklyRate, uint256 yBgtStakerRate, uint256 yBgtLPRate, uint256 yBeraRate, uint256 yHoneyRate);
+    event BointsAprUpdated(
+        uint256 bointsWeeklyRate,
+        uint256 yBgtStakerRate,
+        uint256 yBgtLPRate,
+        uint256 yBeraRate,
+        uint256 yHoneyRate
+    );
     BearnUIControlCentre public uiController =
         BearnUIControlCentre(0xD36e0A4Ae7258Dd1FfE0D7f9f851461369a1AA0E);
 
@@ -30,7 +36,7 @@ contract BointsApr is Authorized {
 
     address public constant yBGT_yBERA_EARNER =
         0x0d3b8E9628Ddad47f0c6b437B4Aa2a3Fda9C0b76;
-    
+
     uint256 public constant TOTAL_SUPPLY = 100_000_000;
 
     uint256 public bointsWeeklyRate;
@@ -64,7 +70,13 @@ contract BointsApr is Authorized {
         yBeraRate = _yBeraRate;
         yHoneyRate = _yHoneyRate;
 
-        emit BointsAprUpdated(_totalRate, _yBgtStakerRate, _yBgtLPRate, _yBeraRate, _yHoneyRate);
+        emit BointsAprUpdated(
+            _totalRate,
+            _yBgtStakerRate,
+            _yBgtLPRate,
+            _yBeraRate,
+            _yHoneyRate
+        );
     }
 
     function setUiController(
@@ -81,9 +93,11 @@ contract BointsApr is Authorized {
     }
 
     function getLPBointsRate() public view returns (uint256) {
-        uint256 islandPrice = uiController.getStakePrice(IBearnVault(yBGT_yBERA_COMPOUNDER).asset());
-        uint256 lp_tvl = ((IBearnVault(yBGT_yBERA_COMPOUNDER).totalAssets() + IBearnVault(yBGT_yBERA_EARNER).totalAssets()) *
-            islandPrice) / 1e18;
+        uint256 islandPrice = uiController.getStakePrice(
+            IBearnVault(yBGT_yBERA_COMPOUNDER).asset()
+        );
+        uint256 lp_tvl = ((IBearnVault(yBGT_yBERA_COMPOUNDER).totalAssets() +
+            IBearnVault(yBGT_yBERA_EARNER).totalAssets()) * islandPrice) / 1e18;
         uint256 annualizedRate = yBgtLPRate * 1e18 * 52;
         return (annualizedRate * 1e18) / lp_tvl;
     }
@@ -98,8 +112,8 @@ contract BointsApr is Authorized {
 
     function getYHoneyBointsRate() public view returns (uint256) {
         uint256 honeyPrice = uiController.getStakePrice(honey);
-        uint256 styHoneyTVL = (IBearnVault(styHoney).totalAssets() * honeyPrice) /
-            1e18;
+        uint256 styHoneyTVL = (IBearnVault(styHoney).totalAssets() *
+            honeyPrice) / 1e18;
         uint256 annualizedRate = yHoneyRate * 1e18 * 52;
         return (annualizedRate * 1e18) / styHoneyTVL;
     }
